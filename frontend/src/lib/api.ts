@@ -1,8 +1,8 @@
 export type Category = { id: number; name: string }
 export type Product = { id: number; name: string; price: number; category_id: number; category_name: string; illustration: string; description: string; is_sample: boolean }
-export type Mode = 'name' | 'pos'
-export type Question = { id: string; mode: Mode; illustration: string; options: { id: number; name: string }[] }
-export type Result = { is_correct: boolean; elapsed_ms: number; correct_product: Product }
+export type Mode = 'category' | 'name' | 'delivery' | 'pos'
+export type Question = { id: string; mode: Mode; illustration: string | null; prompt_name: string | null; options: { id: number; name?: string; illustration?: string }[] }
+export type Result = { points: number; feedback: string; is_correct: boolean; elapsed_ms: number; correct_product: Product }
 
 export async function api<T>(path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
   const response = await fetch(`/api/v1${path}`, {

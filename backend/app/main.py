@@ -1,8 +1,5 @@
 """로컬 개발용 API. 로그인과 관리자 기능은 다음 단계에서 추가합니다."""
 from contextlib import asynccontextmanager
-import json
-import random
-import uuid
 from typing import Literal, Optional
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
@@ -42,25 +39,13 @@ def product(product_id: int):
     return dict(row)
 
 class QuestionRequest(BaseModel):
-    mode: Literal['name', 'pos']
+    mode: Literal['category', 'name', 'delivery', 'pos']
+    exclude_ids: list[int] = Field(default_factory=list, max_length=100)
 
 @app.post('/api/v1/questions')
 def question(body: QuestionRequest):
-    pool = products()
-    if len(pool) < 4:
-        raise HTTPException(409, '예시 상품이 최소 4개 필요합니다.')
-    target = random.choice(pool)
-    distractors = random.sample([p for p in pool if p['id'] != target['id']], 3)
-    choices = [target] + distractors
-    random.shuffle(choices)
-    option_ids = [p['id'] for p in choices] if body.mode == 'name' else [p['id'] for p in pool]
-    question_id = str(uuid.uuid4())
-    with connect() as db:
-        db.execute('INSERT INTO questions(id,mode,product_id,options) VALUES(?,?,?,?)',
-                   (question_id, body.mode, target['id'], json.dumps(option_ids)))
-    return {'id': question_id, 'mode': body.mode, 'illustration': target['illustration'],
-            'is_sample': True,
-            'options': [{'id': p['id'], 'name': p['name']} for p in choices] if body.mode == 'name' else []}
+    from .learning import create_question
+    return create_question(body.mode, body.exclude_ids)
 
 class AnswerRequest(BaseModel):
     selected_id: int
@@ -68,14 +53,5 @@ class AnswerRequest(BaseModel):
 
 @app.post('/api/v1/questions/{question_id}/answer')
 def answer(question_id: str, body: AnswerRequest):
-    with connect() as db:
-        row = db.execute('SELECT * FROM questions WHERE id=?', (question_id,)).fetchone()
-        if row is None:
-            raise HTTPException(404, '문제를 찾을 수 없습니다.')
-        if body.selected_id not in json.loads(row['options']):
-            raise HTTPException(422, '이 문제에서 선택할 수 없는 상품입니다.')
-        db.execute('INSERT OR IGNORE INTO answers(question_id,selected_id,is_correct,elapsed_ms) VALUES(?,?,?,?)',
-                   (question_id, body.selected_id, int(body.selected_id == row['product_id']), body.elapsed_ms))
-        saved = db.execute('SELECT * FROM answers WHERE question_id=?', (question_id,)).fetchone()
-    return {'is_correct': bool(saved['is_correct']), 'elapsed_ms': saved['elapsed_ms'],
-            'selected_id': saved['selected_id'], 'correct_product': product(row['product_id'])}
+    from .learning import grade_answer
+    return grade_answer(question_id, body.selected_id, body.elapsed_ms)
