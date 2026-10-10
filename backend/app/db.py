@@ -49,7 +49,7 @@ def initialize():
             answered_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
         ''')
         # 기존 개발 DB를 삭제하지 않고 컬럼을 추가합니다.
-        for table, column, definition in [('products', 'name_group', 'TEXT'), ('questions', 'correct_answer_id', 'INTEGER')]:
+        for table, column, definition in [('products', 'name_group', 'TEXT'), ('questions', 'correct_answer_id', 'INTEGER'), ('products', 'source_url', 'TEXT'), ('products', 'price_known', 'INTEGER NOT NULL DEFAULT 1')]:
             columns = {row['name'] for row in db.execute(f'PRAGMA table_info({table})')}
             if column not in columns:
                 db.execute(f'ALTER TABLE {table} ADD COLUMN {column} {definition}')

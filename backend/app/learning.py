@@ -9,7 +9,8 @@ POINTS_PER_CORRECT = 20
 
 def all_products(db):
     return [dict(r) for r in db.execute('''SELECT p.*, c.name AS category_name FROM products p
-                                        JOIN categories c ON p.category_id=c.id ORDER BY p.id''')]
+                                        JOIN categories c ON p.category_id=c.id
+                                        WHERE p.is_sample=0 OR NOT EXISTS(SELECT 1 FROM products WHERE is_sample=0) ORDER BY p.id''')]
 
 def create_question(mode, exclude_ids):
     with connect() as db:
@@ -20,10 +21,11 @@ def create_question(mode, exclude_ids):
             eligible = [p for p in eligible if p['name_group'] and
                         sum(other['name_group'] == p['name_group'] for other in pool) >= 2]
         if not eligible:
-            raise HTTPException(409, '출제할 상품이 부족합니다. 새로운 라운드를 시작해 주세요.')
+            raise HTTPException(409, '출제할 상품이 부족합니다. 유사 상품명 그룹 설정 또는 새로운 라운드가 필요합니다.')
         target = random.choice(eligible)
         if mode == 'category':
-            choices = [dict(r) for r in db.execute('SELECT id,name FROM categories ORDER BY id')]
+            active_categories = {p['category_id'] for p in pool}
+            choices = [dict(r) for r in db.execute('SELECT id,name FROM categories ORDER BY id') if r['id'] in active_categories]
             correct_id = target['category_id']
         elif mode == 'name':
             choices = [{'id': p['id'], 'name': p['name']} for p in pool if p['name_group'] == target['name_group']]
@@ -62,7 +64,7 @@ def grade_answer(question_id, selected_id, elapsed_ms):
         db.execute('INSERT OR IGNORE INTO answers(question_id,selected_id,is_correct,elapsed_ms) VALUES(?,?,?,?)',
                    (question_id, selected_id, int(selected_id == correct_id), elapsed_ms))
         saved = db.execute('SELECT * FROM answers WHERE question_id=?', (question_id,)).fetchone()
-        correct_product = next(p for p in all_products(db) if p['id'] == row['product_id'])
+        correct_product = dict(db.execute('SELECT p.*, c.name AS category_name FROM products p JOIN categories c ON p.category_id=c.id WHERE p.id=?', (row['product_id'],)).fetchone())
     correct = bool(saved['is_correct'])
     messages = {
         'category': ('카테고리 정답! 상품 위치를 잘 기억했어요.', '카테고리 실수! 다른 진열대에서 찾고 있었어요.'),

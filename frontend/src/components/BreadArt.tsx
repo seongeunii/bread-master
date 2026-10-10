@@ -1,5 +1,6 @@
 // 실제 사진을 받기 전 사용하는 코드 기반 예시 일러스트입니다.
 export function BreadArt({ kind }: { kind: string }) {
+  if (kind.startsWith('https://')) return <img className="product-photo" src={kind} alt="상품 사진" loading="lazy" referrerPolicy="no-referrer" />
   const loaf = kind === 'loaf' || kind === 'milk'
   const sandwich = kind === 'sandwich' || kind === 'cheese'
   return <svg viewBox="0 0 240 160" role="img" aria-label="예시 상품 일러스트">

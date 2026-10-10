@@ -187,3 +187,23 @@ def test_delivery_quantity_weights(monkeypatch):
     monkeypatch.setattr(delivery.random, 'choices', choices)
     assert delivery.order_quantity() == 1
     assert calls == [([1, 2, 3, 4], [80, 16, 3, 1], 1)]
+
+def test_official_catalog_import_is_idempotent_and_preserves_answers(client, tmp_path, monkeypatch):
+    import json
+    from scripts import import_paris
+    monkeypatch.setattr(import_paris, 'DB_PATH', db.DB_PATH)
+    q = client.post('/api/v1/questions', json={'mode': 'pos'}).json()
+    manifest = tmp_path / 'products.json'
+    manifest.write_text(json.dumps({'count': 1, 'products': [
+        {'name': '공식 테스트 빵', 'source_url': 'https://www.paris.co.kr/product/test/',
+         'image_url': 'https://www.paris.co.kr/test.png', 'site_categories': ['건강빵']}]}))
+    assert import_paris.import_manifest(manifest) == 1
+    assert import_paris.import_manifest(manifest) == 1
+    rows = client.get('/api/v1/products').json()
+    assert len(rows) == 1 and rows[0]['is_sample'] == 0 and rows[0]['price_known'] == 0
+    with db.connect() as conn:
+        assert conn.execute('SELECT COUNT(*) FROM products').fetchone()[0] == 13
+        correct = conn.execute('SELECT correct_answer_id FROM questions WHERE id=?', (q['id'],)).fetchone()[0]
+    # 공식 데이터 등록 전의 문제도 정답 상품을 찾을 수 있어야 합니다.
+    assert client.post(f"/api/v1/questions/{q['id']}/answer", json={'selected_id':correct,'elapsed_ms':1}).json()['is_correct']
+    assert [c['name'] for c in client.get('/api/v1/categories').json()] == ['건강빵']

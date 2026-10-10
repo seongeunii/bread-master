@@ -19,13 +19,14 @@ def health():
 @app.get('/api/v1/categories')
 def categories():
     with connect() as db:
-        return [dict(row) for row in db.execute('SELECT * FROM categories ORDER BY id')]
+        return [dict(row) for row in db.execute('''SELECT * FROM categories WHERE id IN(
+            SELECT category_id FROM products WHERE is_sample=0 OR NOT EXISTS(SELECT 1 FROM products WHERE is_sample=0)) ORDER BY id''')]
 
 @app.get('/api/v1/products')
 def products(category_id: Optional[int] = None, q: str = ''):
     with connect() as db:
         rows = db.execute('''SELECT p.*, c.name AS category_name FROM products p
-                             JOIN categories c ON p.category_id=c.id ORDER BY p.id''').fetchall()
+                             JOIN categories c ON p.category_id=c.id WHERE p.is_sample=0 OR NOT EXISTS(SELECT 1 FROM products WHERE is_sample=0) ORDER BY p.id''').fetchall()
     return [dict(row) for row in rows if (category_id is None or row['category_id'] == category_id)
             and q.strip().casefold() in row['name'].casefold()]
 

@@ -45,16 +45,16 @@ export default function App() {
     <main className="mx-auto max-w-6xl px-5 py-10 md:px-10">
       <div className="eyebrow">A LITTLE PRACTICE, A BETTER FIRST DAY</div>
       <div className="hero"><div><h1>{view === 'catalog' ? '빵 하나씩, 자신감 한 겹씩.' : view === 'inventory' ? '재고 등록도, 차근차근 연습해요.' : '연습은 가볍게, 실전은 자신 있게.'}</h1><p>{view === 'catalog' ? '상품의 모습과 이름을 익히고, 다음 근무를 가볍게 준비해요.' : view === 'inventory' ? '상품을 고르고 총수량을 수정한 뒤, 등록과 저장을 연습해요.' : '카테고리부터 상품명, 배달과 POS까지. 원하는 단계를 골라 연습해요.'}</p></div><span className="hero-stamp">LEARN<br/>BAKE<br/>REPEAT</span></div>
-      <div className="sample-notice"><span>예시 데이터</span> 모든 상품명·가격·분류와 일러스트는 개발용이며 실제 베이커리 정보가 아닙니다.</div>
+      <div className="sample-notice"><span>교육용 도감</span> 공식 사이트 상품은 출처 사진과 이름을 사용합니다. 분류는 사이트 기준이며 실제 POS와 다를 수 있어요. 예시 상품은 별도 표시됩니다.</div>
       {error && <div className="error" role="alert">{error} <button onClick={() => void load()}>다시 연결</button></div>}
       {loading ? <p role="status">상품을 불러오는 중이에요…</p> : products.length > 0 && (view === 'learning' ? <Learning key={learningKey} initialMode={null} products={products} categories={categories}/> : view === 'catalog' ? <>
-        <div className="section-heading"><div><h2>상품 도감</h2><p>{filtered.length}개의 예시 상품</p></div><label className="search">상품명 검색<input value={search} onChange={e => setSearch(e.target.value)} placeholder="어떤 빵을 찾고 있나요?" /></label></div>
+        <div className="section-heading"><div><h2>상품 도감</h2><p>{filtered.length}개의 상품</p></div><label className="search">상품명 검색<input value={search} onChange={e => setSearch(e.target.value)} placeholder="어떤 빵을 찾고 있나요?" /></label></div>
         <div className="categories" aria-label="카테고리"><button className={category === 0 ? 'selected' : ''} onClick={() => setCategory(0)} aria-pressed={category === 0}>전체</button>{categories.map(c => <button key={c.id} className={category === c.id ? 'selected' : ''} aria-pressed={category === c.id} onClick={() => setCategory(c.id)}>{c.name}</button>)}</div>
         <div className="product-grid">{filtered.map(p => <ProductCard key={p.id} product={p} onSelect={setDetail}/>)}</div>{!filtered.length && <div className="empty">검색 결과가 없어요. 다른 상품명을 입력해 주세요.</div>}
       </> : null)}
       {!loading && products.length > 0 && <div hidden={view !== 'inventory'}><Inventory categories={categories}/></div>}
       <footer>빵마스터 · 신입 근무자를 위한 작은 연습실<span>독립적인 교육용 데모 · 실제 POS 연동 없음</span></footer>
     </main>
-    <dialog ref={dialog} onClose={() => setDetail(null)} onClick={e => { if (e.target === e.currentTarget) dialog.current?.close() }} aria-labelledby="detail-title">{detail && <><button className="close" onClick={() => dialog.current?.close()} aria-label="상품 상세 닫기">×</button><div className="detail-art"><BreadArt kind={detail.illustration}/></div><span className="demo-tag">예시 상품 · 일러스트</span><h2 id="detail-title">{detail.name}</h2><p>{detail.category_name} · {won(detail.price)}</p><p>{detail.description}</p><button className="primary" onClick={() => { dialog.current?.close(); navigate('learning') }}>퀴즈로 연습하기 →</button></>}</dialog>
+    <dialog ref={dialog} onClose={() => setDetail(null)} onClick={e => { if (e.target === e.currentTarget) dialog.current?.close() }} aria-labelledby="detail-title">{detail && <><button className="close" onClick={() => dialog.current?.close()} aria-label="상품 상세 닫기">×</button><div className="detail-art"><BreadArt kind={detail.illustration}/></div><span className="demo-tag">{detail.is_sample ? '예시 상품 · 일러스트' : '파리바게뜨 공식 사이트 상품'}</span><h2 id="detail-title">{detail.name}</h2><p>{detail.category_name} · {detail.price_known ? won(detail.price) : '가격 미등록'}</p><p>{detail.description}</p>{detail.source_url && <a href={detail.source_url} target="_blank" rel="noreferrer">공식 상품 페이지 ↗</a>}<button className="primary" onClick={() => { dialog.current?.close(); navigate('learning') }}>퀴즈로 연습하기 →</button></>}</dialog>
   </>
 }
