@@ -43,7 +43,7 @@ def test_invalid_and_wrong_pos_answer(client):
     assert result['correct_product']['id'] == target
     assert client.post('/api/v1/questions/missing/answer', json={'selected_id': 1, 'elapsed_ms': 1}).status_code == 404
 
-@pytest.mark.parametrize('mode', ['category', 'name', 'delivery', 'pos'])
+@pytest.mark.parametrize('mode', ['category', 'name', 'similar-photo', 'delivery', 'pos'])
 def test_five_question_round_and_mode_payload(client, mode):
     seen = []
     for _ in range(5):
@@ -51,15 +51,15 @@ def test_five_question_round_and_mode_payload(client, mode):
         with db.connect() as conn:
             row = conn.execute('SELECT * FROM questions WHERE id=?', (q['id'],)).fetchone()
             target = conn.execute('SELECT * FROM products WHERE id=?', (row['product_id'],)).fetchone()
-            if mode == 'name':
+            if mode in ('name', 'similar-photo'):
                 option_ids = [o['id'] for o in q['options']]
                 groups = [conn.execute('SELECT name_group FROM products WHERE id=?', (id,)).fetchone()[0] for id in option_ids]
                 assert len(option_ids) >= 2 and all(g == target['name_group'] for g in groups)
         assert target['id'] not in seen
         seen.append(target['id'])
-        if mode == 'delivery':
+        if mode in ('delivery', 'similar-photo'):
             assert q['prompt_name'] == target['name'] and q['illustration'] is None
-            assert len(q['options']) == 4
+            assert len(q['options']) == (4 if mode == 'delivery' else len(option_ids))
             assert all('name' not in option and 'category_id' not in option for option in q['options'])
         else:
             assert q['prompt_name'] is None and q['illustration'] == target['illustration']
@@ -98,3 +98,39 @@ def test_initialize_preserves_existing_records(client):
     result = client.post(f"/api/v1/questions/{q['id']}/answer", json={'selected_id': target, 'elapsed_ms': 1000})
     assert result.json()['is_correct'] is True
     assert len(client.get('/api/v1/products').json()) == 12
+
+def test_inventory_save_total_and_isolation(client):
+    practice = client.post('/api/v1/inventory-practices').json()
+    other = client.post('/api/v1/inventory-practices').json()
+    products = practice['products']
+    category = products[0]['category_id']
+    items = [{'product_id': p['id'], 'quantity': 3} for p in products if p['category_id'] == category]
+    items[0]['quantity'] = 7
+    items[-1]['quantity'] = 0
+    path = f"/api/v1/inventory-practices/{practice['id']}"
+    payload = {'category_id': category, 'items': items}
+    assert client.post(path + '/categories', json=payload).json() == payload
+    restored = client.get(path).json()
+    assert restored['saved_categories'][str(category)] == payload
+    assert client.get(f"/api/v1/inventory-practices/{other['id']}").json()['saved_categories'] == {}
+    assert client.get('/api/v1/products').json() == [{k: v for k, v in p.items() if k != 'quantity'} for p in products]
+    assert client.get('/api/v1/inventory-practices/missing').status_code == 404
+
+@pytest.mark.parametrize('invalid', [-1, 1.5, True, '7', 10000])
+def test_inventory_rejects_invalid_quantity(client, invalid):
+    practice = client.post('/api/v1/inventory-practices').json()
+    category = practice['products'][0]['category_id']
+    items = [{'product_id': p['id'], 'quantity': 3} for p in practice['products'] if p['category_id'] == category]
+    items[0]['quantity'] = invalid
+    path = f"/api/v1/inventory-practices/{practice['id']}/categories"
+    assert client.post(path, json={'category_id': category, 'items': items}).status_code == 422
+
+def test_inventory_rejects_incomplete_duplicate_and_other_category(client):
+    practice = client.post('/api/v1/inventory-practices').json()
+    category = practice['products'][0]['category_id']
+    items = [{'product_id': p['id'], 'quantity': 3} for p in practice['products'] if p['category_id'] == category]
+    path = f"/api/v1/inventory-practices/{practice['id']}/categories"
+    outside = next(p for p in practice['products'] if p['category_id'] != category)
+    for invalid in [items[:-1], items + [items[0]], items[:-1] + [{'product_id': outside['id'], 'quantity': 3}]]:
+        assert client.post(path, json={'category_id': category, 'items': invalid}).status_code == 422
+    assert client.get(f"/api/v1/inventory-practices/{practice['id']}").json()['saved_categories'] == {}

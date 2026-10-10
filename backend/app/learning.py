@@ -15,7 +15,7 @@ def create_question(mode, exclude_ids):
     with connect() as db:
         pool = all_products(db)
         eligible = [p for p in pool if p['id'] not in exclude_ids]
-        if mode == 'name':
+        if mode in ('name', 'similar-photo'):
             # 비슷한 이름은 명시적으로 분류합니다. 카테고리가 같다는 이유로 섞지 않습니다.
             eligible = [p for p in eligible if p['name_group'] and
                         sum(other['name_group'] == p['name_group'] for other in pool) >= 2]
@@ -27,6 +27,9 @@ def create_question(mode, exclude_ids):
             correct_id = target['category_id']
         elif mode == 'name':
             choices = [{'id': p['id'], 'name': p['name']} for p in pool if p['name_group'] == target['name_group']]
+            correct_id = target['id']
+        elif mode == 'similar-photo':
+            choices = [{'id': p['id'], 'illustration': p['illustration']} for p in pool if p['name_group'] == target['name_group']]
             correct_id = target['id']
         elif mode == 'delivery':
             if len(pool) < 4:
@@ -44,8 +47,8 @@ def create_question(mode, exclude_ids):
         db.execute('INSERT INTO questions(id,mode,product_id,options,correct_answer_id) VALUES(?,?,?,?,?)',
                    (question_id, mode, target['id'], json.dumps(allowed), correct_id))
     return {'id': question_id, 'mode': mode, 'is_sample': True,
-            'illustration': None if mode == 'delivery' else target['illustration'],
-            'prompt_name': target['name'] if mode == 'delivery' else None,
+            'illustration': None if mode in ('delivery', 'similar-photo') else target['illustration'],
+            'prompt_name': target['name'] if mode in ('delivery', 'similar-photo') else None,
             'options': choices}
 
 def grade_answer(question_id, selected_id, elapsed_ms):
@@ -64,6 +67,7 @@ def grade_answer(question_id, selected_id, elapsed_ms):
     messages = {
         'category': ('카테고리 정답! 상품 위치를 잘 기억했어요.', '카테고리 실수! 다른 진열대에서 찾고 있었어요.'),
         'name': ('상품명 정답! 비슷한 이름도 정확히 구분했어요.', '상품명 실수! 비슷한 빵과 헷갈렸어요.'),
+        'similar-photo': ('상품 사진 정답! 비슷한 빵도 정확히 구분했어요.', '상품 사진 실수! 이름에 맞는 빵을 다시 확인해요.'),
         'delivery': ('배달 성공! 손님이 기뻐해요.', '배달 실수! 손님이 화났어요.'),
         'pos': ('POS 등록 성공! 손님을 기다리게 하지 않았어요.', 'POS 등록 실수! 다른 상품을 찍었어요.'),
     }

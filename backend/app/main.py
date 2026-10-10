@@ -39,7 +39,7 @@ def product(product_id: int):
     return dict(row)
 
 class QuestionRequest(BaseModel):
-    mode: Literal['category', 'name', 'delivery', 'pos']
+    mode: Literal['category', 'name', 'similar-photo', 'delivery', 'pos']
     exclude_ids: list[int] = Field(default_factory=list, max_length=100)
 
 @app.post('/api/v1/questions')
@@ -55,3 +55,6 @@ class AnswerRequest(BaseModel):
 def answer(question_id: str, body: AnswerRequest):
     from .learning import grade_answer
     return grade_answer(question_id, body.selected_id, body.elapsed_ms)
+
+from .inventory import router as inventory_router
+app.include_router(inventory_router)

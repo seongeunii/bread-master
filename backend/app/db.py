@@ -37,6 +37,9 @@ def initialize():
         CREATE TABLE IF NOT EXISTS questions(
             id TEXT PRIMARY KEY, mode TEXT NOT NULL, product_id INTEGER NOT NULL REFERENCES products(id),
             options TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+        CREATE TABLE IF NOT EXISTS inventory_practices(
+            id TEXT PRIMARY KEY, catalog TEXT NOT NULL, saved_categories TEXT NOT NULL DEFAULT '{}',
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
         CREATE TABLE IF NOT EXISTS answers(
             question_id TEXT PRIMARY KEY REFERENCES questions(id), selected_id INTEGER NOT NULL,
             is_correct INTEGER NOT NULL, elapsed_ms INTEGER NOT NULL,
