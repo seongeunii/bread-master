@@ -4,10 +4,12 @@ import type { Category, Mode, Product, Question, Result } from '../../lib/api'
 import { BreadArt } from '../../components/BreadArt'
 import { ProductCard } from '../../components/ProductCard'
 import { ROUND_SIZE, stages } from './stages'
+import { DeliveryAdvanced } from '../delivery/DeliveryAdvanced'
 import './Learning.css'
 
 type Props = { products: Product[]; categories: Category[]; initialMode: Mode | null }
 export function Learning({ products, categories, initialMode }: Props) {
+  const [advancedDelivery, setAdvancedDelivery] = useState(false)
   const [mode, setMode] = useState<Mode | null>(initialMode)
   const [question, setQuestion] = useState<Question | null>(null)
   const [result, setResult] = useState<Result | null>(null)
@@ -27,6 +29,7 @@ export function Learning({ products, categories, initialMode }: Props) {
   useEffect(() => () => { requestVersion.current++ }, [])
 
   function reset(nextMode: Mode | null) {
+    setAdvancedDelivery(false)
     requestVersion.current++; submitting.current = false
     setMode(nextMode); setQuestion(null); setResult(null); setAnswers([])
     setFinished(false); setBusy(false); setError(''); setCategory(0); setPage(0); setSelected(null)
@@ -62,10 +65,11 @@ export function Learning({ products, categories, initialMode }: Props) {
   const posProducts = products.filter(p => p.category_id === category)
   const pageSize = 4
   return <section className="learning">
-    <div className="section-heading"><div><h2>네 단계, 나에게 필요한 연습부터</h2><p>순서대로 잠금 해제할 필요 없이 원하는 단계를 선택하세요.</p></div><span className="round-rule">5문제 · 정답당 20점 · 100점 만점</span></div>
+    <div className="section-heading"><div><h2>네 단계, 나에게 필요한 연습부터</h2><p>순서대로 잠금 해제할 필요 없이 원하는 단계를 선택하세요.</p></div><span className="round-rule">{advancedDelivery ? '심화 · 주문당 20점 · 자유 연습' : '5문제 · 정답당 20점 · 100점 만점'}</span></div>
     <div className="stage-grid" aria-label="학습 단계 선택">{stages.map(s => <button key={s.mode} className={`stage-card ${(mode === s.mode || (s.mode === 'name' && mode === 'similar-photo')) ? 'chosen' : ''}`} aria-pressed={mode === s.mode || (s.mode === 'name' && mode === 'similar-photo')} onClick={() => reset(s.mode)}><span className="stage-icon" aria-hidden="true">{s.icon}</span><small>{s.number}단계</small><h3>{s.title}</h3><p>{s.description}</p><span className="stage-action">{(mode === s.mode || (s.mode === 'name' && mode === 'similar-photo')) ? '선택됨 ✓' : '이 단계 선택 →'}</span></button>)}</div>
     {stage?.mode === 'name' && <div className="name-directions" aria-label="상품명 연습 방향"><button className={mode === 'name' ? 'selected' : ''} aria-pressed={mode === 'name'} onClick={() => reset('name')}>사진 보고 이름 선택</button><button className={mode === 'similar-photo' ? 'selected' : ''} aria-pressed={mode === 'similar-photo'} onClick={() => reset('similar-photo')}>이름 보고 사진 선택</button></div>}
-    {!stage ? <div className="stage-empty">어떤 연습부터 해볼까요? 위에서 단계를 선택해 주세요.</div> : <div className="round-content">
+    {stage?.mode === 'delivery' && <div className="name-directions" aria-label="배달 연습 난이도"><button aria-pressed={!advancedDelivery} className={!advancedDelivery ? 'selected' : ''} onClick={() => reset('delivery')}>기본 · 사진 1개 선택</button><button aria-pressed={advancedDelivery} className={advancedDelivery ? 'selected' : ''} onClick={() => { reset('delivery'); setAdvancedDelivery(true) }}>심화 · 주문서대로 포장</button></div>}
+    {advancedDelivery && stage?.mode === 'delivery' ? <DeliveryAdvanced/> : !stage ? <div className="stage-empty">어떤 연습부터 해볼까요? 위에서 단계를 선택해 주세요.</div> : <div className="round-content">
       <div className="scoreboard"><span>{stage.number}단계 · {stage.title}</span><span>진행 <b>{answers.length} / {ROUND_SIZE}</b></span><span className="score">점수 <b>{score}</b> / 100</span></div>
       <progress aria-label="라운드 진행률" max={ROUND_SIZE} value={answers.length} />
       {error && <div role="alert" className="error">{error}</div>}

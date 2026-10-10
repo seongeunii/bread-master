@@ -58,3 +58,6 @@ def answer(question_id: str, body: AnswerRequest):
 
 from .inventory import router as inventory_router
 app.include_router(inventory_router)
+
+from .delivery import router as delivery_router
+app.include_router(delivery_router)

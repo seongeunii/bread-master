@@ -134,3 +134,56 @@ def test_inventory_rejects_incomplete_duplicate_and_other_category(client):
     for invalid in [items[:-1], items + [items[0]], items[:-1] + [{'product_id': outside['id'], 'quantity': 3}]]:
         assert client.post(path, json={'category_id': category, 'items': invalid}).status_code == 422
     assert client.get(f"/api/v1/inventory-practices/{practice['id']}").json()['saved_categories'] == {}
+
+def test_advanced_delivery_quantity_and_duplicate_submit(client, monkeypatch):
+    from app import delivery
+    monkeypatch.setattr(delivery, 'order_quantity', lambda: 3)
+    order = client.post('/api/v1/delivery-orders', json={}).json()
+    assert len(order['options']) == 12
+    assert len({p['id'] for p in order['options']}) == 12
+    assert all('name' not in p for p in order['options'])
+    assert 2 <= len(order['lines']) <= 4
+    assert all(line['quantity'] == 3 for line in order['lines'])
+    payload = {'items': [{'product_id': l['product_id'], 'quantity': l['quantity']} for l in order['lines']], 'elapsed_ms': 4000}
+    path = f"/api/v1/delivery-orders/{order['id']}/submit"
+    result = client.post(path, json=payload).json()
+    assert result['is_correct'] and result['points'] == 20 and not result['differences']
+    assert client.post(path, json={'items': [], 'elapsed_ms': 9000}).json() == result
+
+def test_advanced_delivery_missing_extra_and_wrong_counts(client):
+    order = client.post('/api/v1/delivery-orders', json={}).json()
+    expected = {l['product_id']: l['quantity'] for l in order['lines']}
+    first = order['lines'][0]['product_id']
+    extra = next(p['id'] for p in order['options'] if p['id'] not in expected)
+    cart = {first: expected[first] + 1, extra: 1}
+    result = client.post(f"/api/v1/delivery-orders/{order['id']}/submit", json={
+        'items': [{'product_id': id, 'quantity': n} for id, n in cart.items()], 'elapsed_ms': 20
+    }).json()
+    assert not result['is_correct'] and result['points'] == 0
+    assert result['feedback'] == '배달 실수! 손님이 화났어요.'
+    diffs = {d['product_id']: d for d in result['differences']}
+    assert diffs[first]['actual'] == expected[first] + 1
+    assert diffs[extra]['expected'] == 0
+    assert all(diffs[id]['actual'] == 0 for id in expected if id != first)
+
+@pytest.mark.parametrize('items', [
+    [{'product_id': 9999, 'quantity': 1}],
+    [{'product_id': 1, 'quantity': 1}, {'product_id': 1, 'quantity': 2}],
+    [{'product_id': 1, 'quantity': -1}],
+    [{'product_id': 1, 'quantity': 1.5}],
+    [{'product_id': 1, 'quantity': True}],
+])
+def test_advanced_delivery_invalid_cart(client, items):
+    order = client.post('/api/v1/delivery-orders', json={}).json()
+    assert client.post(f"/api/v1/delivery-orders/{order['id']}/submit",
+                       json={'items': items, 'elapsed_ms': 1}).status_code == 422
+
+def test_delivery_quantity_weights(monkeypatch):
+    from app import delivery
+    calls = []
+    def choices(values, weights, k):
+        calls.append((values, weights, k))
+        return [1]
+    monkeypatch.setattr(delivery.random, 'choices', choices)
+    assert delivery.order_quantity() == 1
+    assert calls == [([1, 2, 3, 4], [80, 16, 3, 1], 1)]
