@@ -18,17 +18,20 @@ class CartItem(BaseModel):
     quantity: int = Field(strict=True, ge=1, le=99)
 
 class Submission(BaseModel):
-    items: list[CartItem] = Field(max_length=15)
+    items: list[CartItem] = Field(max_length=500)
     elapsed_ms: int = Field(strict=True, ge=0, le=86400000)
 
 @router.post('')
-def create_order():
+def create_order(use_pos: bool = False):
     with connect() as db:
         pool = all_products(db)
+        if use_pos:
+            from .pos import catalog
+            pool = catalog(db)['products']
         if len(pool) < 3:
             raise HTTPException(409, '배달 심화에는 상품이 최소 3개 필요합니다.')
-        candidates = random.sample(pool, min(15, len(pool)))
-        ordered = random.sample(candidates, random.randint(2, min(4, len(candidates))))
+        candidates = random.sample(pool, len(pool) if use_pos else min(15, len(pool)))
+        ordered = random.sample(candidates, random.randint(1 if use_pos else 2, min(3 if use_pos else 4, len(candidates))))
         lines = [{'product_id': p['id'], 'name': p['name'], 'quantity': order_quantity()} for p in ordered]
         options = [{'id': p['id'], 'illustration': p['illustration']} for p in candidates]
         id = str(uuid.uuid4())
@@ -59,3 +62,13 @@ def submit_order(order_id: str, body: Submission):
                   'differences': differences}
         db.execute('UPDATE delivery_orders SET result=? WHERE id=?', (json.dumps(result), order_id))
     return result
+
+
+@router.post('/pos/start')
+def create_pos_order():
+    return create_order(True)
+
+@router.post('/pos/{order_id}/submit')
+def submit_pos_order(order_id: str, body: Submission):
+    result = submit_order(order_id, body)
+    return {**result, 'feedback': '결제 연습 성공! 상품과 수량이 모두 맞아요.' if result['is_correct'] else '결제 실수! 등록 상품과 수량을 다시 확인해요.'}

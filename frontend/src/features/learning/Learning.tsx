@@ -2,17 +2,14 @@ import { useEffect, useRef, useState } from 'react'
 import { api } from '../../lib/api'
 import type { Category, Mode, Product, Question, Result } from '../../lib/api'
 import { BreadArt } from '../../components/BreadArt'
-import { PosTerminal, NumberPad } from '../pos/PosTerminal'
-import type { PosProduct } from '../pos/PosTerminal'
+import { PosPractice } from '../pos/PosPractice'
 import { ROUND_SIZE, stages } from './stages'
 import { DeliveryAdvanced } from '../delivery/DeliveryAdvanced'
 import './Learning.css'
 
 type Props = { products: Product[]; categories: Category[]; initialMode: Mode | null }
-export function Learning({ products, initialMode }: Props) {
+export function Learning({ initialMode }: Props) {
   const [advancedDelivery, setAdvancedDelivery] = useState(false)
-  const [posCatalog, setPosCatalog] = useState<{categories: Category[]; products: PosProduct[]} | null>(null)
-  useEffect(() => { const c = new AbortController(); api<{categories: Category[]; products: PosProduct[]}>('/pos-catalog', undefined, c.signal).then(setPosCatalog).catch(() => {}); return () => c.abort() }, [])
   const [mode, setMode] = useState<Mode | null>(initialMode)
   const [question, setQuestion] = useState<Question | null>(null)
   const [result, setResult] = useState<Result | null>(null)
@@ -20,9 +17,6 @@ export function Learning({ products, initialMode }: Props) {
   const [finished, setFinished] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const [category, setCategory] = useState(0)
-  const [page, setPage] = useState(0)
-  const [posQuantity, setPosQuantity] = useState('1')
   const [selected, setSelected] = useState<number | null>(null)
   const startedAt = useRef(0)
   const requestVersion = useRef(0)
@@ -36,17 +30,16 @@ export function Learning({ products, initialMode }: Props) {
     setAdvancedDelivery(false)
     requestVersion.current++; submitting.current = false
     setMode(nextMode); setQuestion(null); setResult(null); setAnswers([])
-    setFinished(false); setBusy(false); setError(''); setCategory(0); setPage(0); setSelected(null); setPosQuantity('1')
+    setFinished(false); setBusy(false); setError(''); setSelected(null)
   }
   async function nextQuestion() {
     if (!mode || submitting.current || busy) return
-    if (mode === 'pos' && !posCatalog) { setError('POS 상품 배치를 불러오지 못했어요. 페이지를 새로고침해 주세요.'); return }
     const version = ++requestVersion.current
-    setBusy(true); setQuestion(null); setResult(null); setSelected(null); setPosQuantity('1'); setError('')
+    setBusy(true); setQuestion(null); setResult(null); setSelected(null); setError('')
     try {
       const next = await api<Question>('/questions', { mode, exclude_ids: answers.map(a => a.correct_product.id) })
       if (version !== requestVersion.current) return
-      setQuestion(next); setCategory(0); setPage(0); startedAt.current = performance.now()
+      setQuestion(next); startedAt.current = performance.now()
     } catch (e) {
       if (version === requestVersion.current) setError(e instanceof Error ? e.message : '출제에 실패했어요.')
     } finally { if (version === requestVersion.current) setBusy(false) }
@@ -72,7 +65,7 @@ export function Learning({ products, initialMode }: Props) {
     <div className="stage-grid" aria-label="학습 단계 선택">{stages.map(s => <button key={s.mode} className={`stage-card ${(mode === s.mode || (s.mode === 'name' && mode === 'similar-photo')) ? 'chosen' : ''}`} aria-pressed={mode === s.mode || (s.mode === 'name' && mode === 'similar-photo')} onClick={() => reset(s.mode)}><span className="stage-icon" aria-hidden="true">{s.icon}</span><small>{s.number}단계</small><h3>{s.title}</h3><p>{s.description}</p><span className="stage-action">{(mode === s.mode || (s.mode === 'name' && mode === 'similar-photo')) ? '선택됨 ✓' : '이 단계 선택 →'}</span></button>)}</div>
     {stage?.mode === 'name' && <div className="name-directions" aria-label="상품명 연습 방향"><button className={mode === 'name' ? 'selected' : ''} aria-pressed={mode === 'name'} onClick={() => reset('name')}>사진 보고 이름 선택</button><button className={mode === 'similar-photo' ? 'selected' : ''} aria-pressed={mode === 'similar-photo'} onClick={() => reset('similar-photo')}>이름 보고 사진 선택</button></div>}
     {stage?.mode === 'delivery' && <div className="name-directions" aria-label="배달 연습 난이도"><button aria-pressed={!advancedDelivery} className={!advancedDelivery ? 'selected' : ''} onClick={() => reset('delivery')}>기본 · 사진 1개 선택</button><button aria-pressed={advancedDelivery} className={advancedDelivery ? 'selected' : ''} onClick={() => { reset('delivery'); setAdvancedDelivery(true) }}>심화 · 주문서대로 포장</button></div>}
-    {advancedDelivery && stage?.mode === 'delivery' ? <DeliveryAdvanced/> : !stage ? <div className="stage-empty">어떤 연습부터 해볼까요? 위에서 단계를 선택해 주세요.</div> : <div className="round-content">
+    {mode === 'pos' ? <PosPractice/> : advancedDelivery && stage?.mode === 'delivery' ? <DeliveryAdvanced/> : !stage ? <div className="stage-empty">어떤 연습부터 해볼까요? 위에서 단계를 선택해 주세요.</div> : <div className="round-content">
       <div className="scoreboard"><span>{stage.number}단계 · {stage.title}</span><span>진행 <b>{answers.length} / {ROUND_SIZE}</b></span><span className="score">점수 <b>{score}</b> / 100</span></div>
       <progress aria-label="라운드 진행률" max={ROUND_SIZE} value={answers.length} />
       {error && <div role="alert" className="error">{error}</div>}
@@ -80,10 +73,9 @@ export function Learning({ products, initialMode }: Props) {
       : <>
         {!question ? <section className="practice-panel"><div><span className="eyebrow">STAGE {stage.number}</span><h2>{stage.title}, 준비됐나요?</h2><p>{stage.description}</p>{(mode === 'name' || mode === 'similar-photo') && <p>유사 이름 그룹의 2~3개 보기에서 선택해요.</p>}</div><button className="primary" disabled={busy} onClick={() => void nextQuestion()}>{busy ? '문제 준비 중…' : error ? '다시 시도 →' : '5문제 연습 시작 →'}</button></section>
         : <>
-          <section className="practice-panel"><div><span className="eyebrow">QUESTION {Math.min(answers.length + (result ? 0 : 1), ROUND_SIZE)} / {ROUND_SIZE}</span><h2>{mode === 'similar-photo' ? '이 이름에 맞는 빵 사진을 골라주세요.' : stage.prompt}</h2>{(mode === 'delivery' || mode === 'similar-photo') ? <div className="delivery-order"><small>{mode === 'delivery' ? '배달 주문서 · 1개' : '찾아야 할 상품명'}</small><strong>{question.prompt_name}</strong><p>{mode === 'delivery' ? '주문한 상품과 사진이 일치하는지 확인해 주세요.' : '비슷한 상품 그룹 안에서 정확한 사진을 찾아요.'}</p></div> : <p>{mode === 'pos' ? '카테고리 선택 → 상품 찾기 → 등록하기' : '첫 선택으로 채점해요. 틀려도 정답을 확인하고 다시 배울 수 있어요.'}</p>}</div>{question.illustration && <div className="question-art"><BreadArt kind={question.illustration}/><small>상품 이미지</small></div>}</section>
+          <section className="practice-panel"><div><span className="eyebrow">QUESTION {Math.min(answers.length + (result ? 0 : 1), ROUND_SIZE)} / {ROUND_SIZE}</span><h2>{mode === 'similar-photo' ? '이 이름에 맞는 빵 사진을 골라주세요.' : stage.prompt}</h2>{(mode === 'delivery' || mode === 'similar-photo') ? <div className="delivery-order"><small>{mode === 'delivery' ? '배달 주문서 · 1개' : '찾아야 할 상품명'}</small><strong>{question.prompt_name}</strong><p>{mode === 'delivery' ? '주문한 상품과 사진이 일치하는지 확인해 주세요.' : '비슷한 상품 그룹 안에서 정확한 사진을 찾아요.'}</p></div> : <p>{'첫 선택으로 채점해요. 틀려도 정답을 확인하고 다시 배울 수 있어요.'}</p>}</div>{question.illustration && <div className="question-art"><BreadArt kind={question.illustration}/><small>상품 이미지</small></div>}</section>
           {(mode === 'category' || mode === 'name') && <div className="choices">{question.options.map((option, index) => <button key={option.id} className={selected === option.id ? 'answer-selected' : ''} disabled={busy || !!result} onClick={() => void submit(option.id, Math.round(performance.now() - startedAt.current))}><span>{index + 1}</span>{option.name}</button>)}</div>}
           {(mode === 'delivery' || mode === 'similar-photo') && <div className="delivery-choices" aria-label={mode === 'delivery' ? '배달 상품 사진 선택' : '유사 상품 사진 선택'}>{question.options.map((option, index) => <button key={option.id} className={`picture-choice ${selected === option.id ? 'answer-selected' : ''}`} aria-label={`${index + 1}번 사진 선택`} disabled={busy || !!result} onClick={() => void submit(option.id, Math.round(performance.now() - startedAt.current))}><BreadArt kind={option.illustration!}/><span>{index + 1}번 · {mode === 'delivery' ? '이 상품 담기' : '이 사진 선택'}</span><small>상품 이미지</small></button>)}</div>}
-          {mode === 'pos' && <PosTerminal categories={posCatalog?.categories ?? []} products={posCatalog?.products ?? []} category={category} page={page} onCategory={id => { setCategory(id); setPage(0) }} onPage={setPage} onProduct={p => { setSelected(p.id); setPosQuantity('1') }} disabled={busy || !!result} selected={selected} ledger={<><table><thead><tr><th>상품명</th><th>수량</th></tr></thead><tbody>{selected !== null && <tr><td>{products.find(p=>p.id===selected)?.name}</td><td>{posQuantity || '—'}</td></tr>}</tbody></table>{selected === null && <p>오른쪽에서 상품을 선택한 뒤 하단 등록 버튼을 누르세요.</p>}</>} controls={<><div><label>등록 수량<input aria-label="POS 등록 수량" type="number" min="1" max="9999" value={posQuantity} disabled={busy || !!result} onChange={e=>setPosQuantity(e.target.value)}/></label><p>이번 문제는 사진 속 상품 1개를 등록해요.</p><button className="primary" disabled={busy || !!result || selected === null} onClick={()=>{if(posQuantity!=='1'){setError('이번 문제는 1개 주문이에요. 수량을 1로 수정해 주세요.');return} if(selected!==null)void submit(selected,Math.min(86400000,Math.round(performance.now()-startedAt.current)))}}>상품 등록</button><button className="secondary" disabled={busy || !!result || selected===null} onClick={()=>{setSelected(null);setPosQuantity('1')}}>선택 취소</button></div><NumberPad value={posQuantity} onChange={value=>{if(value.length<=4)setPosQuantity(value)}} disabled={busy || !!result}/></>}/>}
           {busy && <p role="status">답안을 확인하고 있어요…</p>}
           {result && <section className={`feedback ${result.is_correct ? 'correct' : 'mistake'}`} role="status"><div className="feedback-content"><span className="customer-face" aria-hidden="true">{result.is_correct ? '😊' : mode === 'delivery' ? '😠' : '😟'}</span><div><h2>{result.feedback}</h2><p>정답: {result.correct_product.name} · {result.correct_product.category_name}</p><small>{result.is_correct ? '+20점' : '+0점'} · 선택까지 {(result.elapsed_ms / 1000).toFixed(1)}초</small></div></div><button className="primary" disabled={busy} onClick={completeOrNext}>{answers.length === ROUND_SIZE ? '최종 점수 보기 →' : '다음 문제 →'}</button></section>}
         </>}

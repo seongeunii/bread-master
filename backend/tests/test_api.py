@@ -226,3 +226,24 @@ def test_pos_mapping_is_independent_and_preserves_blank_slots(client):
     assert target in {p['id'] for p in pos['products']}
     practice = client.post('/api/v1/inventory-practices').json()
     assert {p['category_id'] for p in practice['products']} == {p['category_id'] for p in pos['products']}
+
+def test_pos_checkout_checks_entire_cart(client):
+    order = client.post('/api/v1/delivery-orders/pos/start', json={}).json()
+    assert 1 <= len(order['lines']) <= 3
+    assert len(order['options']) == 12
+    correct = [{'product_id': l['product_id'], 'quantity': l['quantity']} for l in order['lines']]
+    path = f"/api/v1/delivery-orders/pos/{order['id']}/submit"
+    result = client.post(path, json={'items':correct,'elapsed_ms':500}).json()
+    assert result['is_correct'] and result['points'] == 20
+    assert '결제 연습 성공' in result['feedback']
+    assert client.post(path,json={'items':[],'elapsed_ms':900}).json() == result
+
+def test_pos_checkout_rejects_extra_product_as_wrong_answer(client):
+    order = client.post('/api/v1/delivery-orders/pos/start',json={}).json()
+    ids = {line['product_id'] for line in order['lines']}
+    wrong = next(o['id'] for o in order['options'] if o['id'] not in ids)
+    cart = [{'product_id':l['product_id'],'quantity':l['quantity']} for l in order['lines']]
+    cart.append({'product_id':wrong,'quantity':1})
+    result=client.post(f"/api/v1/delivery-orders/pos/{order['id']}/submit",json={'items':cart,'elapsed_ms':100}).json()
+    assert not result['is_correct'] and result['points']==0
+    assert result['differences'][0]['actual']==1 and result['differences'][0]['expected']==0
