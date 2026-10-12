@@ -1,0 +1,19 @@
+name: 기능 요청
+description: 추가하거나 개선할 기능
+title: "[기능] "
+labels: ["feature"]
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: 원하는 동작
+      description: 어떤 사용자에게 어떤 기능이 필요한가요?
+    validations:
+      required: true
+  - type: textarea
+    id: done
+    attributes:
+      label: 완료 기준
+      description: 완료 여부를 확인할 수 있는 동작을 적어 주세요.
+    validations:
+      required: true

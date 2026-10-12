@@ -1,0 +1,22 @@
+name: 오류 신고
+description: 정상적으로 동작하지 않는 부분
+title: "[버그] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 재현 방법과 실제 결과
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 기대한 결과
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: 사용 환경
+      placeholder: "예: 모바일 세로 / Chrome"
