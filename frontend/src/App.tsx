@@ -52,7 +52,7 @@ export default function App() {
         <div className="categories" aria-label="카테고리"><button className={category === 0 ? 'selected' : ''} onClick={() => setCategory(0)} aria-pressed={category === 0}>전체</button>{categories.map(c => <button key={c.id} className={category === c.id ? 'selected' : ''} aria-pressed={category === c.id} onClick={() => setCategory(c.id)}>{c.name}</button>)}</div>
         <div className="product-grid">{filtered.map(p => <ProductCard key={p.id} product={p} onSelect={setDetail}/>)}</div>{!filtered.length && <div className="empty">검색 결과가 없어요. 다른 상품명을 입력해 주세요.</div>}
       </> : null)}
-      {!loading && products.length > 0 && <div hidden={view !== 'inventory'}><Inventory categories={categories}/></div>}
+      {!loading && products.length > 0 && <div hidden={view !== 'inventory'}><Inventory/></div>}
       <footer>빵마스터 · 신입 근무자를 위한 작은 연습실<span>독립적인 교육용 데모 · 실제 POS 연동 없음</span></footer>
     </main>
     <dialog ref={dialog} onClose={() => setDetail(null)} onClick={e => { if (e.target === e.currentTarget) dialog.current?.close() }} aria-labelledby="detail-title">{detail && <><button className="close" onClick={() => dialog.current?.close()} aria-label="상품 상세 닫기">×</button><div className="detail-art"><BreadArt kind={detail.illustration}/></div><span className="demo-tag">{detail.is_sample ? '예시 상품 · 일러스트' : '파리바게뜨 공식 사이트 상품'}</span><h2 id="detail-title">{detail.name}</h2><p>{detail.category_name} · {detail.price_known ? won(detail.price) : '가격 미등록'}</p><p>{detail.description}</p>{detail.source_url && <a href={detail.source_url} target="_blank" rel="noreferrer">공식 상품 페이지 ↗</a>}<button className="primary" onClick={() => { dialog.current?.close(); navigate('learning') }}>퀴즈로 연습하기 →</button></>}</dialog>

@@ -4,7 +4,7 @@ import uuid
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from .db import connect
-from .learning import all_products
+from .pos import catalog
 
 router = APIRouter(prefix='/api/v1/inventory-practices', tags=['Inventory practice'])
 
@@ -19,14 +19,15 @@ class CategorySubmission(BaseModel):
 @router.post('')
 def start_practice():
     with connect() as db:
-        catalog = []
-        for p in all_products(db):
-            catalog.append({**p, 'quantity': 3})
-        if not catalog:
+        catalog_data = catalog(db)
+        products = []
+        for p in catalog_data['products']:
+            products.append({**p, 'quantity': 3})
+        if not products:
             raise HTTPException(409, '등록 연습에 사용할 상품이 없습니다.')
         practice_id = str(uuid.uuid4())
-        db.execute('INSERT INTO inventory_practices(id,catalog) VALUES(?,?)', (practice_id, json.dumps(catalog)))
-    return {'id': practice_id, 'products': catalog, 'saved_categories': {}}
+        db.execute('INSERT INTO inventory_practices(id,catalog) VALUES(?,?)', (practice_id, json.dumps(products)))
+    return {'id': practice_id, 'products': products, 'categories': catalog_data['categories'], 'saved_categories': {}}
 
 @router.get('/{practice_id}')
 def get_practice(practice_id: str):
@@ -34,7 +35,10 @@ def get_practice(practice_id: str):
         row = db.execute('SELECT * FROM inventory_practices WHERE id=?', (practice_id,)).fetchone()
     if row is None:
         raise HTTPException(404, '재고 연습을 찾을 수 없습니다.')
-    return {'id': row['id'], 'products': json.loads(row['catalog']), 'saved_categories': json.loads(row['saved_categories'])}
+    products = json.loads(row['catalog'])
+    with connect() as db:
+        categories = catalog(db)['categories'] if products and products[0]['category_id'] >= 1000 else list({p['category_id']: {'id': p['category_id'], 'name': p['category_name']} for p in products}.values())
+    return {'id': row['id'], 'products': products, 'categories': categories, 'saved_categories': json.loads(row['saved_categories'])}
 
 @router.post('/{practice_id}/categories')
 def save_category(practice_id: str, body: CategorySubmission):

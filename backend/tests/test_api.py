@@ -113,7 +113,7 @@ def test_inventory_save_total_and_isolation(client):
     restored = client.get(path).json()
     assert restored['saved_categories'][str(category)] == payload
     assert client.get(f"/api/v1/inventory-practices/{other['id']}").json()['saved_categories'] == {}
-    assert client.get('/api/v1/products').json() == [{k: v for k, v in p.items() if k != 'quantity'} for p in products]
+    assert client.get('/api/v1/products').json() == sorted([{k: v for k, v in p.items() if k not in ('quantity', 'pos_slot')} for p in products], key=lambda p: p['id'])
     assert client.get('/api/v1/inventory-practices/missing').status_code == 404
 
 @pytest.mark.parametrize('invalid', [-1, 1.5, True, '7', 10000])
@@ -207,3 +207,22 @@ def test_official_catalog_import_is_idempotent_and_preserves_answers(client, tmp
     # 공식 데이터 등록 전의 문제도 정답 상품을 찾을 수 있어야 합니다.
     assert client.post(f"/api/v1/questions/{q['id']}/answer", json={'selected_id':correct,'elapsed_ms':1}).json()['is_correct']
     assert [c['name'] for c in client.get('/api/v1/categories').json()] == ['건강빵']
+
+
+def test_pos_mapping_is_independent_and_preserves_blank_slots(client):
+    with db.connect() as conn:
+        conn.execute("INSERT INTO products(name,price,category_id,illustration,description,is_sample) VALUES('フレンチ',0,1,'test','',0)")
+        conn.execute("INSERT INTO products(name,price,category_id,illustration,description,is_sample) VALUES('프렌치크라상',0,1,'test','',0)")
+        conn.execute("INSERT INTO products(name,price,category_id,illustration,description,is_sample) VALUES('치즈소시지페스츄리',0,1,'test','',0)")
+    pos = client.get('/api/v1/pos-catalog').json()
+    assert pos['basis'] == 'photo-reference'
+    assert pos['unmapped_count'] == 1
+    assert {p['pos_slot'] for p in pos['products']} == {0, 5}
+    assert all(p['category_name'] == '페스츄리' for p in pos['products'])
+    assert all(p['category_id'] != 1 for p in pos['products'])
+    question = client.post('/api/v1/questions', json={'mode':'pos'}).json()
+    with db.connect() as conn:
+        target = conn.execute('SELECT product_id FROM questions WHERE id=?', (question['id'],)).fetchone()[0]
+    assert target in {p['id'] for p in pos['products']}
+    practice = client.post('/api/v1/inventory-practices').json()
+    assert {p['category_id'] for p in practice['products']} == {p['category_id'] for p in pos['products']}

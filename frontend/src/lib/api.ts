@@ -18,6 +18,6 @@ export async function api<T>(path: string, body?: unknown, signal?: AbortSignal)
 }
 export const won = (price: number) => `${price.toLocaleString('ko-KR')}원`
 
-export type InventoryProduct = Product & { quantity: number }
+export type InventoryProduct = Product & { quantity: number; pos_slot?: number }
 export type InventorySave = { category_id: number; items: { product_id: number; quantity: number }[] }
-export type InventoryPractice = { id: string; products: InventoryProduct[]; saved_categories: Record<string, InventorySave> }
+export type InventoryPractice = { categories?: Category[]; id: string; products: InventoryProduct[]; saved_categories: Record<string, InventorySave> }

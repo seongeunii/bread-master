@@ -62,3 +62,9 @@ app.include_router(inventory_router)
 
 from .delivery import router as delivery_router
 app.include_router(delivery_router)
+
+@app.get('/api/v1/pos-catalog')
+def pos_catalog():
+    from .pos import catalog
+    with connect() as db:
+        return catalog(db)

@@ -15,6 +15,9 @@ def all_products(db):
 def create_question(mode, exclude_ids):
     with connect() as db:
         pool = all_products(db)
+        if mode == 'pos':
+            from .pos import catalog
+            pool = catalog(db)['products']
         eligible = [p for p in pool if p['id'] not in exclude_ids]
         if mode in ('name', 'similar-photo'):
             # 비슷한 이름은 명시적으로 분류합니다. 카테고리가 같다는 이유로 섞지 않습니다.
@@ -65,6 +68,9 @@ def grade_answer(question_id, selected_id, elapsed_ms):
                    (question_id, selected_id, int(selected_id == correct_id), elapsed_ms))
         saved = db.execute('SELECT * FROM answers WHERE question_id=?', (question_id,)).fetchone()
         correct_product = dict(db.execute('SELECT p.*, c.name AS category_name FROM products p JOIN categories c ON p.category_id=c.id WHERE p.id=?', (row['product_id'],)).fetchone())
+        if row['mode'] == 'pos':
+            from .pos import catalog
+            correct_product = next((p for p in catalog(db)['products'] if p['id'] == row['product_id']), correct_product)
     correct = bool(saved['is_correct'])
     messages = {
         'category': ('카테고리 정답! 상품 위치를 잘 기억했어요.', '카테고리 실수! 다른 진열대에서 찾고 있었어요.'),
