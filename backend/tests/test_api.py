@@ -113,7 +113,7 @@ def test_inventory_save_total_and_isolation(client):
     restored = client.get(path).json()
     assert restored['saved_categories'][str(category)] == payload
     assert client.get(f"/api/v1/inventory-practices/{other['id']}").json()['saved_categories'] == {}
-    assert client.get('/api/v1/products').json() == sorted([{k: v for k, v in p.items() if k not in ('quantity', 'pos_slot')} for p in products], key=lambda p: p['id'])
+    assert client.get('/api/v1/products').json() == sorted([{k: v for k, v in p.items() if k != 'quantity'} for p in products], key=lambda p: p['id'])
     assert client.get('/api/v1/inventory-practices/missing').status_code == 404
 
 @pytest.mark.parametrize('invalid', [-1, 1.5, True, '7', 10000])
@@ -206,7 +206,8 @@ def test_official_catalog_import_is_idempotent_and_preserves_answers(client, tmp
         correct = conn.execute('SELECT correct_answer_id FROM questions WHERE id=?', (q['id'],)).fetchone()[0]
     # 공식 데이터 등록 전의 문제도 정답 상품을 찾을 수 있어야 합니다.
     assert client.post(f"/api/v1/questions/{q['id']}/answer", json={'selected_id':correct,'elapsed_ms':1}).json()['is_correct']
-    assert [c['name'] for c in client.get('/api/v1/categories').json()] == ['건강빵']
+    assert '건강빵' not in [c['name'] for c in client.get('/api/v1/categories').json()]
+    assert '휴면반죽단과자' in [c['name'] for c in client.get('/api/v1/categories').json()]
 
 
 def test_pos_mapping_is_independent_and_preserves_blank_slots(client):
@@ -269,3 +270,21 @@ def test_user_pos_names_prices_and_positions(client):
     practice=client.post('/api/v1/inventory-practices',json={}).json()
     assert all(not p['manual_price'] for p in practice['products'])
     assert len(practice['products'])==77
+
+
+def test_all_quizzes_use_pos_categories(client):
+    names=['프렌치크라상','프렌치 뀐아망','갈릭고구마페스츄리','치즈소시지페스츄리']
+    with db.connect() as conn:
+        for name in names:
+            conn.execute("INSERT INTO products(name,price,category_id,illustration,description,is_sample,name_group) VALUES(?,0,1,'photo','',0,'pastry')", (name,))
+    for mode in ['category','name','similar-photo','delivery']:
+        q=client.post('/api/v1/questions',json={'mode':mode}).json()
+        with db.connect() as conn:
+            row=conn.execute('SELECT * FROM questions WHERE id=?',(q['id'],)).fetchone()
+        result=client.post(f"/api/v1/questions/{q['id']}/answer",json={'selected_id':row['correct_answer_id'],'elapsed_ms':1}).json()
+        assert result['correct_product']['category_name']=='페스츄리'
+        assert result['correct_product']['category_id']==1004
+        assert result['is_correct']
+    order=client.post('/api/v1/delivery-orders',json={}).json()
+    assert all(line['name'] in ['프렌치크라상','프렌치뀐아망','갈릭고구마페스츄리','치즈소시지페스츄리'] for line in order['lines'])
+    assert all(p['category_name']=='페스츄리' for p in client.get('/api/v1/products').json())

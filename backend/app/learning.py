@@ -15,9 +15,9 @@ def all_products(db):
 def create_question(mode, exclude_ids):
     with connect() as db:
         pool = all_products(db)
-        if mode in ('pos','category'):
-            from .pos import catalog
-            pool = sorted([p for p in catalog(db)['products'] if p.get('source_product_id', p['id']) is not None], key=lambda p:p['id'])
+        # 모든 퀴즈는 동일한 POS 분류를 사용합니다.
+        from .pos import catalog
+        pool = sorted([p for p in catalog(db)['products'] if p.get('source_product_id', p['id']) is not None], key=lambda p:p['id'])
         eligible = [p for p in pool if p['id'] not in exclude_ids]
         if mode in ('name', 'similar-photo'):
             # 비슷한 이름은 명시적으로 분류합니다. 카테고리가 같다는 이유로 섞지 않습니다.
@@ -69,9 +69,9 @@ def grade_answer(question_id, selected_id, elapsed_ms):
                    (question_id, selected_id, int(selected_id == correct_id), elapsed_ms))
         saved = db.execute('SELECT * FROM answers WHERE question_id=?', (question_id,)).fetchone()
         correct_product = dict(db.execute('SELECT p.*, c.name AS category_name FROM products p JOIN categories c ON p.category_id=c.id WHERE p.id=?', (row['product_id'],)).fetchone())
-        if row['mode'] in ('pos','category'):
-            from .pos import catalog
-            correct_product = next((p for p in catalog(db)['products'] if p['id'] == row['product_id']), correct_product)
+        # 모든 정답·오답 안내에 POS 이름과 분류를 적용합니다.
+        from .pos import catalog
+        correct_product = next((p for p in catalog(db)['products'] if p['id'] == row['product_id']), {**correct_product, 'category_name':'POS 미분류', 'category_id':0})
     correct = bool(saved['is_correct'])
     messages = {
         'category': ('카테고리 정답! 상품 위치를 잘 기억했어요.', '카테고리 실수! 다른 진열대에서 찾고 있었어요.'),

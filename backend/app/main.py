@@ -19,14 +19,19 @@ def health():
 @app.get('/api/v1/categories')
 def categories():
     with connect() as db:
-        return [dict(row) for row in db.execute('''SELECT * FROM categories WHERE id IN(
-            SELECT category_id FROM products WHERE is_sample=0 OR NOT EXISTS(SELECT 1 FROM products WHERE is_sample=0)) ORDER BY id''')]
+        from .pos import catalog
+        return catalog(db)['categories']
 
 @app.get('/api/v1/products')
 def products(category_id: Optional[int] = None, q: str = ''):
     with connect() as db:
-        rows = db.execute('''SELECT p.*, c.name AS category_name FROM products p
-                             JOIN categories c ON p.category_id=c.id WHERE p.is_sample=0 OR NOT EXISTS(SELECT 1 FROM products WHERE is_sample=0) ORDER BY p.id''').fetchall()
+        from .pos import catalog
+        from .learning import all_products
+        raw = all_products(db)
+        pos = catalog(db)['products']
+        mapped = {p['id']:p for p in pos}
+        rows = [mapped.get(p['id'], {**p, 'category_id':0, 'category_name':'POS 미분류', 'description':'POS 분류 확인이 필요한 상품입니다.'}) for p in raw]
+
     return [dict(row) for row in rows if (category_id is None or row['category_id'] == category_id)
             and q.strip().casefold() in row['name'].casefold()]
 
@@ -37,7 +42,10 @@ def product(product_id: int):
                             JOIN categories c ON p.category_id=c.id WHERE p.id=?''', (product_id,)).fetchone()
     if row is None:
         raise HTTPException(404, '상품을 찾을 수 없습니다.')
-    return dict(row)
+    with connect() as db:
+        from .pos import catalog
+        mapped = next((p for p in catalog(db)['products'] if p['id']==product_id), None)
+    return mapped or {**dict(row), 'category_id':0, 'category_name':'POS 미분류', 'description':'POS 분류 확인이 필요한 상품입니다.'}
 
 class QuestionRequest(BaseModel):
     mode: Literal['category', 'name', 'similar-photo', 'delivery', 'pos']

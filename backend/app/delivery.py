@@ -24,10 +24,8 @@ class Submission(BaseModel):
 @router.post('')
 def create_order(use_pos: bool = False):
     with connect() as db:
-        pool = all_products(db)
-        if use_pos:
-            from .pos import catalog
-            pool = [p for p in catalog(db)['products'] if p['illustration'] and not p.get('manual_price')]
+        from .pos import catalog
+        pool = [p for p in catalog(db)['products'] if p['illustration'] and not p.get('manual_price')]
         if len(pool) < 3:
             raise HTTPException(409, '배달 심화에는 상품이 최소 3개 필요합니다.')
         candidates = random.sample(pool, len(pool) if use_pos else min(15, len(pool)))
