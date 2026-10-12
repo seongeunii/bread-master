@@ -22,6 +22,8 @@ def start_practice():
         catalog_data = catalog(db)
         products = []
         for p in catalog_data['products']:
+            if p.get('manual_price'):
+                continue
             products.append({**p, 'quantity': 3})
         if not products:
             raise HTTPException(409, '등록 연습에 사용할 상품이 없습니다.')

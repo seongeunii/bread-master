@@ -1,5 +1,5 @@
 export type Category = { id: number; name: string }
-export type Product = { id: number; name: string; price: number; category_id: number; category_name: string; illustration: string; description: string; is_sample: boolean; source_url?: string | null; price_known?: boolean }
+export type Product = { id: number; name: string; price: number; category_id: number; category_name: string; illustration: string; description: string; is_sample: boolean; source_url?: string | null; price_known?: boolean; source_product_id?: number | null; manual_price?: boolean; image_status?: string }
 export type Mode = 'category' | 'name' | 'similar-photo' | 'delivery' | 'pos'
 export type Question = { id: string; mode: Mode; illustration: string | null; prompt_name: string | null; options: { id: number; name?: string; illustration?: string }[] }
 export type Result = { points: number; feedback: string; is_correct: boolean; elapsed_ms: number; correct_product: Product }

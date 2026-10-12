@@ -215,11 +215,12 @@ def test_pos_mapping_is_independent_and_preserves_blank_slots(client):
         conn.execute("INSERT INTO products(name,price,category_id,illustration,description,is_sample) VALUES('프렌치크라상',0,1,'test','',0)")
         conn.execute("INSERT INTO products(name,price,category_id,illustration,description,is_sample) VALUES('치즈소시지페스츄리',0,1,'test','',0)")
     pos = client.get('/api/v1/pos-catalog').json()
-    assert pos['basis'] == 'photo-reference'
+    assert pos['basis'] == 'user-confirmed'
     assert pos['unmapped_count'] == 1
-    assert {p['pos_slot'] for p in pos['products']} == {0, 5}
-    assert all(p['category_name'] == '페스츄리' for p in pos['products'])
-    assert all(p['category_id'] != 1 for p in pos['products'])
+    matched = [p for p in pos['products'] if p.get('source_product_id') is not None]
+    assert {p['pos_slot'] for p in matched} == {0, 5}
+    assert all(p['category_name'] == '페스츄리' for p in matched)
+    assert all(p['category_id'] != 1 for p in matched)
     question = client.post('/api/v1/questions', json={'mode':'pos'}).json()
     with db.connect() as conn:
         target = conn.execute('SELECT product_id FROM questions WHERE id=?', (question['id'],)).fetchone()[0]
@@ -247,3 +248,24 @@ def test_pos_checkout_rejects_extra_product_as_wrong_answer(client):
     result=client.post(f"/api/v1/delivery-orders/pos/{order['id']}/submit",json={'items':cart,'elapsed_ms':100}).json()
     assert not result['is_correct'] and result['points']==0
     assert result['differences'][0]['actual']==1 and result['differences'][0]['expected']==0
+
+def test_user_pos_names_prices_and_positions(client):
+    with db.connect() as conn:
+        conn.execute("UPDATE products SET is_sample=0 WHERE id=1")
+    layout=client.get('/api/v1/pos-catalog').json()
+    rows=layout['products']
+    assert len(rows)==78
+    assert len({(p['category_id'],p['pos_slot']) for p in rows})==78
+    by_name={p['name']:p for p in rows}
+    assert by_name['감자쫀떡(2개입)']['price']==3900
+    assert by_name['정통에그타르트']['pos_slot']==3
+    assert by_name['올리브치아바타']['pos_slot']==13
+    assert by_name['치즈감자치아바타']['pos_slot']==14
+    assert by_name['소보루인생크림빵']['price']==3300
+    assert by_name['행)묶음빵']['pos_slot']==19
+    assert by_name['빵류']['manual_price'] and not by_name['빵류']['price_known']
+    assert by_name['종이쇼핑백']['price']==100 and by_name['종이쇼핑백']['pos_slot']==23
+    assert by_name['조각)로스팅호두파이']['illustration']==''
+    practice=client.post('/api/v1/inventory-practices',json={}).json()
+    assert all(not p['manual_price'] for p in practice['products'])
+    assert len(practice['products'])==77

@@ -15,9 +15,9 @@ def all_products(db):
 def create_question(mode, exclude_ids):
     with connect() as db:
         pool = all_products(db)
-        if mode == 'pos':
+        if mode in ('pos','category'):
             from .pos import catalog
-            pool = catalog(db)['products']
+            pool = sorted([p for p in catalog(db)['products'] if p.get('source_product_id', p['id']) is not None], key=lambda p:p['id'])
         eligible = [p for p in pool if p['id'] not in exclude_ids]
         if mode in ('name', 'similar-photo'):
             # 비슷한 이름은 명시적으로 분류합니다. 카테고리가 같다는 이유로 섞지 않습니다.
@@ -27,8 +27,9 @@ def create_question(mode, exclude_ids):
             raise HTTPException(409, '출제할 상품이 부족합니다. 유사 상품명 그룹 설정 또는 새로운 라운드가 필요합니다.')
         target = random.choice(eligible)
         if mode == 'category':
+            from .pos import catalog
             active_categories = {p['category_id'] for p in pool}
-            choices = [dict(r) for r in db.execute('SELECT id,name FROM categories ORDER BY id') if r['id'] in active_categories]
+            choices = [c for c in catalog(db)['categories'] if c['id'] in active_categories]
             correct_id = target['category_id']
         elif mode == 'name':
             choices = [{'id': p['id'], 'name': p['name']} for p in pool if p['name_group'] == target['name_group']]
@@ -68,7 +69,7 @@ def grade_answer(question_id, selected_id, elapsed_ms):
                    (question_id, selected_id, int(selected_id == correct_id), elapsed_ms))
         saved = db.execute('SELECT * FROM answers WHERE question_id=?', (question_id,)).fetchone()
         correct_product = dict(db.execute('SELECT p.*, c.name AS category_name FROM products p JOIN categories c ON p.category_id=c.id WHERE p.id=?', (row['product_id'],)).fetchone())
-        if row['mode'] == 'pos':
+        if row['mode'] in ('pos','category'):
             from .pos import catalog
             correct_product = next((p for p in catalog(db)['products'] if p['id'] == row['product_id']), correct_product)
     correct = bool(saved['is_correct'])

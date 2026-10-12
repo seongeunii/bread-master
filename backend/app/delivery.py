@@ -27,13 +27,13 @@ def create_order(use_pos: bool = False):
         pool = all_products(db)
         if use_pos:
             from .pos import catalog
-            pool = catalog(db)['products']
+            pool = [p for p in catalog(db)['products'] if p['illustration'] and not p.get('manual_price')]
         if len(pool) < 3:
             raise HTTPException(409, '배달 심화에는 상품이 최소 3개 필요합니다.')
         candidates = random.sample(pool, len(pool) if use_pos else min(15, len(pool)))
         ordered = random.sample(candidates, random.randint(1 if use_pos else 2, min(3 if use_pos else 4, len(candidates))))
         lines = [{'product_id': p['id'], 'name': p['name'], 'quantity': order_quantity()} for p in ordered]
-        options = [{'id': p['id'], 'illustration': p['illustration']} for p in candidates]
+        options = [{'id': p['id'], 'illustration': p['illustration']} for p in (catalog(db)['products'] if use_pos else candidates)]
         id = str(uuid.uuid4())
         db.execute('INSERT INTO delivery_orders(id,lines,options) VALUES(?,?,?)', (id, json.dumps(lines), json.dumps(options)))
     return {'id': id, 'lines': lines, 'options': options, 'is_sample': True}
@@ -55,6 +55,8 @@ def submit_order(order_id: str, body: Submission):
         expected = {i['product_id']: i['quantity'] for i in lines}
         correct = cart == expected
         names = {p['id']: p['name'] for p in all_products(db)}
+        from .pos import catalog
+        names.update({p['id']:p['name'] for p in catalog(db)['products']})
         differences = [{'product_id': id, 'name': names.get(id, '상품'), 'expected': expected.get(id, 0), 'actual': cart.get(id, 0)}
                        for id in sorted(set(cart) | set(expected)) if cart.get(id, 0) != expected.get(id, 0)]
         result = {'is_correct': correct, 'points': 20 if correct else 0, 'elapsed_ms': body.elapsed_ms,
