@@ -7,7 +7,8 @@
       "slot": 0,
       "price": 1900,
       "source_name": "소보루빵",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "휴면반죽단과자",
@@ -15,7 +16,8 @@
       "slot": 1,
       "price": 1900,
       "source_name": "단팥빵",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "휴면반죽단과자",
@@ -23,7 +25,8 @@
       "slot": 2,
       "price": 1900,
       "source_name": "슈크림빵",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "휴면반죽단과자",
@@ -31,7 +34,8 @@
       "slot": 3,
       "price": 2300,
       "source_name": "단팥소보루",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "휴면반죽단과자",
@@ -39,7 +43,8 @@
       "slot": 5,
       "price": 3300,
       "source_name": "인생크림빵 단팥",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "휴면반죽단과자",
@@ -47,7 +52,8 @@
       "slot": 6,
       "price": 3300,
       "source_name": "인생크림빵 우유",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "휴면반죽단과자",
@@ -55,7 +61,8 @@
       "slot": 7,
       "price": 3300,
       "source_name": "인생크림빵 소보루",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "휴면반죽단과자",
@@ -63,7 +70,8 @@
       "slot": 8,
       "price": 3300,
       "source_name": "우베생크림빵",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "휴면반죽단과자",
@@ -71,7 +79,8 @@
       "slot": 9,
       "price": 3300,
       "source_name": "[파란라벨]저당 요거트크림빵",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "휴면반죽단과자",
@@ -79,7 +88,8 @@
       "slot": 19,
       "price": 8000,
       "source_name": null,
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "휴면반죽단과자",
@@ -87,7 +97,8 @@
       "slot": 22,
       "price": null,
       "source_name": null,
-      "manual_price": true
+      "manual_price": true,
+      "name_group": null
     },
     {
       "category": "휴면반죽단과자",
@@ -95,7 +106,8 @@
       "slot": 23,
       "price": 100,
       "source_name": null,
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "휴면반죽기타",
@@ -103,7 +115,8 @@
       "slot": 0,
       "price": 3900,
       "source_name": "탱글탱글 뽀드득 소시지",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "휴면반죽기타",
@@ -111,7 +124,8 @@
       "slot": 1,
       "price": 3900,
       "source_name": "감자쫀떡(2개입)",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "휴면반죽기타",
@@ -119,7 +133,8 @@
       "slot": 3,
       "price": 2700,
       "source_name": null,
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "휴면반죽기타",
@@ -127,7 +142,8 @@
       "slot": 4,
       "price": 3300,
       "source_name": "쫀득치즈스틱",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "휴면반죽기타",
@@ -135,7 +151,8 @@
       "slot": 5,
       "price": 3300,
       "source_name": "추억의 소시지빵",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "휴면반죽기타",
@@ -143,7 +160,8 @@
       "slot": 6,
       "price": 4900,
       "source_name": "양파치즈브레드",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "휴면반죽기타",
@@ -151,7 +169,8 @@
       "slot": 7,
       "price": 3900,
       "source_name": "버터롤",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "휴면반죽기타",
@@ -159,7 +178,8 @@
       "slot": 8,
       "price": 3500,
       "source_name": "스위트 밀크롤",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "휴면반죽기타",
@@ -167,7 +187,8 @@
       "slot": 9,
       "price": 4500,
       "source_name": "체다치즈와 고다치즈를 더한 롤치즈빵",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": "roll-cheese"
     },
     {
       "category": "휴면반죽기타",
@@ -175,7 +196,8 @@
       "slot": 10,
       "price": 3300,
       "source_name": "더 부드러워진 아다지오 커피번",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": "coffee-mocha"
     },
     {
       "category": "휴면반죽기타",
@@ -183,7 +205,8 @@
       "slot": 11,
       "price": 2900,
       "source_name": "발효버터 소금빵",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "휴면반죽기타",
@@ -191,7 +214,8 @@
       "slot": 12,
       "price": 4500,
       "source_name": null,
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "휴면반죽기타",
@@ -199,7 +223,8 @@
       "slot": 13,
       "price": 3900,
       "source_name": "블랙 올리브 치즈 치아바타",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "휴면반죽기타",
@@ -207,7 +232,8 @@
       "slot": 14,
       "price": 2300,
       "source_name": "쫀득고소한 추억의 찰깨빵",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "휴면반죽기타",
@@ -215,7 +241,8 @@
       "slot": 15,
       "price": 2900,
       "source_name": "NEW 쫄깃한 피자빵",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "휴면반죽기타",
@@ -223,7 +250,8 @@
       "slot": 16,
       "price": 3000,
       "source_name": "메론크림빵",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "휴면반죽기타",
@@ -231,7 +259,8 @@
       "slot": 17,
       "price": 3200,
       "source_name": "연유크림이 토핑된 시나몬롤",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "휴면반죽기타",
@@ -239,7 +268,8 @@
       "slot": 20,
       "price": 3600,
       "source_name": "멕시칸 핫도그",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "휴면반죽기타",
@@ -247,7 +277,8 @@
       "slot": 21,
       "price": 3100,
       "source_name": "크림치즈말랑",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "휴면반죽식빵",
@@ -255,7 +286,8 @@
       "slot": 0,
       "price": 6300,
       "source_name": "모닝토스트",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "휴면반죽식빵",
@@ -263,7 +295,8 @@
       "slot": 1,
       "price": 6800,
       "source_name": "밤식빵",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "휴면반죽식빵",
@@ -271,7 +304,8 @@
       "slot": 2,
       "price": 5500,
       "source_name": "후레쉬 크림샌드빵",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "휴면반죽식빵",
@@ -279,7 +313,8 @@
       "slot": 3,
       "price": 5500,
       "source_name": "달콤고소한 밤소보루브레드",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "휴면반죽식빵",
@@ -287,7 +322,8 @@
       "slot": 4,
       "price": 5400,
       "source_name": "맘모스브레드",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "휴면반죽식빵",
@@ -295,7 +331,8 @@
       "slot": 5,
       "price": 5900,
       "source_name": "모카크림샌드빵",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": "coffee-mocha"
     },
     {
       "category": "휴면반죽식빵",
@@ -303,7 +340,8 @@
       "slot": 6,
       "price": 6700,
       "source_name": "고구마 슈크림 식빵",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "휴면반죽식빵",
@@ -311,7 +349,8 @@
       "slot": 7,
       "price": 4900,
       "source_name": "미니 호두아몬드 크림치즈빵(5개입)",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "휴면반죽식빵",
@@ -319,7 +358,8 @@
       "slot": 9,
       "price": 5600,
       "source_name": "뜯어먹는 롤치즈 브레드(1/2)",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": "roll-cheese"
     },
     {
       "category": "휴면반죽식빵",
@@ -327,7 +367,8 @@
       "slot": 10,
       "price": 5500,
       "source_name": "고다치즈 올리브 식빵",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "휴면반죽식빵",
@@ -335,7 +376,8 @@
       "slot": 11,
       "price": 4900,
       "source_name": "[NEW] 카페모카빵",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": "coffee-mocha"
     },
     {
       "category": "휴면반죽식빵",
@@ -343,7 +385,8 @@
       "slot": 12,
       "price": 3100,
       "source_name": "밤소보루 맘모스(1/2)",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "휴면반죽식빵",
@@ -351,7 +394,8 @@
       "slot": 13,
       "price": 5700,
       "source_name": "반반 후.크.샌 연유와 땅콩",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "페스츄리",
@@ -359,7 +403,8 @@
       "slot": 0,
       "price": 2700,
       "source_name": "프렌치크라상",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "페스츄리",
@@ -367,7 +412,8 @@
       "slot": 1,
       "price": 3400,
       "source_name": "프렌치 뀐아망",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "페스츄리",
@@ -375,7 +421,8 @@
       "slot": 2,
       "price": 3500,
       "source_name": "갈릭고구마페스츄리",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "페스츄리",
@@ -383,7 +430,8 @@
       "slot": 3,
       "price": 4000,
       "source_name": "초코칩쏙쏙트위스트",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "페스츄리",
@@ -391,7 +439,8 @@
       "slot": 5,
       "price": 3400,
       "source_name": "치즈소시지페스츄리",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "파이류",
@@ -399,7 +448,8 @@
       "slot": 0,
       "price": 3600,
       "source_name": "사각사각 애플파이",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "파이류",
@@ -407,7 +457,8 @@
       "slot": 1,
       "price": 4000,
       "source_name": null,
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "바게트",
@@ -415,7 +466,8 @@
       "slot": 0,
       "price": 4100,
       "source_name": "프렌치바게뜨",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "바게트",
@@ -423,7 +475,8 @@
       "slot": 1,
       "price": 3000,
       "source_name": "마늘빵 (5개입)",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "바게트",
@@ -431,7 +484,8 @@
       "slot": 2,
       "price": 4100,
       "source_name": "쫄깃담백 토종효모빵",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "바게트",
@@ -439,7 +493,8 @@
       "slot": 5,
       "price": 3100,
       "source_name": "플레인 베이글",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "바게트",
@@ -447,7 +502,8 @@
       "slot": 6,
       "price": 3500,
       "source_name": "블랙올리브치즈 베이글",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "바게트",
@@ -455,7 +511,8 @@
       "slot": 10,
       "price": 6200,
       "source_name": "[파란라벨]크랜베리 호밀 깜빠뉴",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "바게트",
@@ -463,7 +520,8 @@
       "slot": 12,
       "price": 6200,
       "source_name": "[파란라벨]멀티그레인 호밀빵",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "바게트",
@@ -471,7 +529,8 @@
       "slot": 14,
       "price": 5200,
       "source_name": "[파란라벨]치즈감자 치아바타",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "바게트",
@@ -479,7 +538,8 @@
       "slot": 15,
       "price": 4900,
       "source_name": "[파란라벨]메밀 바게뜨",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "바게트",
@@ -487,7 +547,8 @@
       "slot": 16,
       "price": 5500,
       "source_name": "[파란라벨]쌀 치아바타",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "바게트",
@@ -495,7 +556,8 @@
       "slot": 17,
       "price": 5200,
       "source_name": "[파란라벨]통곡물 호밀 깜빠뉴",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "도우넛",
@@ -503,7 +565,8 @@
       "slot": 0,
       "price": 2100,
       "source_name": "찹쌀도넛",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "도우넛",
@@ -511,7 +574,8 @@
       "slot": 1,
       "price": 3800,
       "source_name": "미니 찹쌀도넛",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "도우넛",
@@ -519,7 +583,8 @@
       "slot": 2,
       "price": 3200,
       "source_name": "추억의 생도나스",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "도우넛",
@@ -527,7 +592,8 @@
       "slot": 5,
       "price": 3300,
       "source_name": "명품 고기잡채고로케",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "도우넛",
@@ -535,7 +601,8 @@
       "slot": 6,
       "price": 3300,
       "source_name": "야채감자 샐러드고로케",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "도우넛",
@@ -543,7 +610,8 @@
       "slot": 7,
       "price": 3600,
       "source_name": "피자고로케",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "도우넛",
@@ -551,7 +619,8 @@
       "slot": 10,
       "price": 3400,
       "source_name": "핫도그도넛",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "도우넛",
@@ -559,7 +628,8 @@
       "slot": 11,
       "price": 2100,
       "source_name": "꽈배기도넛",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "도우넛",
@@ -567,7 +637,8 @@
       "slot": 12,
       "price": 2400,
       "source_name": "우리찹쌀 왕꽈배기",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "도우넛",
@@ -575,7 +646,8 @@
       "slot": 15,
       "price": 1950,
       "source_name": "다크초코츄잉스타",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "도우넛",
@@ -583,7 +655,8 @@
       "slot": 16,
       "price": 3100,
       "source_name": "케익꽈배기도넛",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "도우넛",
@@ -591,7 +664,8 @@
       "slot": 17,
       "price": 2300,
       "source_name": "모짜렐라 치즈봉",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "도우넛",
@@ -599,7 +673,8 @@
       "slot": 20,
       "price": 1950,
       "source_name": "LA초코쫀득도넛",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "도우넛",
@@ -607,7 +682,8 @@
       "slot": 21,
       "price": 2100,
       "source_name": "카레 크로켓",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "도우넛",
@@ -615,7 +691,8 @@
       "slot": 22,
       "price": 2100,
       "source_name": "에그샐러드 크로켓",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     },
     {
       "category": "도우넛",
@@ -623,7 +700,8 @@
       "slot": 23,
       "price": 2900,
       "source_name": "초코쫀득츄러스",
-      "manual_price": false
+      "manual_price": false,
+      "name_group": null
     }
   ]
 }

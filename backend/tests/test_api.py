@@ -277,7 +277,7 @@ def test_all_quizzes_use_pos_categories(client):
     with db.connect() as conn:
         for name in names:
             conn.execute("INSERT INTO products(name,price,category_id,illustration,description,is_sample,name_group) VALUES(?,0,1,'photo','',0,'pastry')", (name,))
-    for mode in ['category','name','similar-photo','delivery']:
+    for mode in ['category','delivery']:
         q=client.post('/api/v1/questions',json={'mode':mode}).json()
         with db.connect() as conn:
             row=conn.execute('SELECT * FROM questions WHERE id=?',(q['id'],)).fetchone()
@@ -288,3 +288,31 @@ def test_all_quizzes_use_pos_categories(client):
     order=client.post('/api/v1/delivery-orders',json={}).json()
     assert all(line['name'] in ['프렌치크라상','프렌치뀐아망','갈릭고구마페스츄리','치즈소시지페스츄리'] for line in order['lines'])
     assert all(p['category_name']=='페스츄리' for p in client.get('/api/v1/products').json())
+
+@pytest.mark.parametrize('mode', ['name','similar-photo'])
+def test_user_confirmed_name_groups_complete_round(client, mode):
+    import json
+    from pathlib import Path
+    entries=json.loads((Path(__file__).parents[1]/'data/pos-layout.json').read_text())['entries']
+    grouped=[p for p in entries if p.get('name_group')]
+    assert len(grouped)==5
+    with db.connect() as conn:
+        for entry in grouped:
+            conn.execute("INSERT INTO products(name,price,category_id,illustration,description,is_sample) VALUES(?,0,1,'test-photo','',0)", (entry['source_name'],))
+    catalog=client.get('/api/v1/pos-catalog').json()
+    group_by_id={p['id']:p.get('name_group') for p in catalog['products']}
+    names={p['id']:p['name'] for p in catalog['products']}
+    seen=[]
+    for _ in range(5):
+        q=client.post('/api/v1/questions',json={'mode':mode,'exclude_ids':seen}).json()
+        with db.connect() as conn:
+            target=conn.execute('SELECT product_id FROM questions WHERE id=?',(q['id'],)).fetchone()[0]
+        assert target not in seen
+        seen.append(target)
+        assert {group_by_id[o['id']] for o in q['options']}=={group_by_id[target]}
+        assert len(q['options'])==(2 if group_by_id[target]=='roll-cheese' else 3)
+        result=client.post(f"/api/v1/questions/{q['id']}/answer",json={'selected_id':target,'elapsed_ms':10}).json()
+        assert result['is_correct'] and result['points']==20
+        assert result['correct_product']['name']==names[target]
+    assert len(set(seen))==5
+    assert client.post('/api/v1/questions',json={'mode':mode,'exclude_ids':seen}).status_code==409

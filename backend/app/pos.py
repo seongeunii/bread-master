@@ -25,6 +25,7 @@ def catalog(db):
             **(source or {}),
             'id': source['id'] if source else 1000000 + category_id*100 + entry['slot'],
             'source_product_id': source['id'] if source else None,
+            'name_group':entry.get('name_group'),
             'name': entry['name'], 'price':entry['price'] or 0, 'price_known':entry['price'] is not None,
             'category_id':category_id, 'category_name':entry['category'], 'pos_slot':entry['slot'],
             'illustration':source['illustration'] if source else '',
