@@ -7,14 +7,19 @@ from .db import connect, initialize
 
 @asynccontextmanager
 async def lifespan(app):
-    initialize()
+    from .demo import enabled, prepare
+    if enabled():
+        prepare()
+    else:
+        initialize()
     yield
 
 app = FastAPI(title='Bread Master · 예시 데이터', lifespan=lifespan)
 
 @app.get('/api/v1/health')
 def health():
-    return {'status': 'ok', 'data': 'sample'}
+    from .demo import enabled
+    return {'status': 'ok', 'data': 'demo' if enabled() else 'sample'}
 
 @app.get('/api/v1/categories')
 def categories():
@@ -76,3 +81,8 @@ def pos_catalog():
     from .pos import catalog
     with connect() as db:
         return catalog(db)
+
+from .demo import install_limits
+from .web import install as install_web
+install_limits(app)
+install_web(app)

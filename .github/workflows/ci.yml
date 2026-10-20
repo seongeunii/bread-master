@@ -45,3 +45,27 @@ jobs:
         working-directory: backend
       - run: python -m pytest -q
         working-directory: backend
+  demo-image:
+    name: Demo image smoke test
+    runs-on: ubuntu-latest
+    needs: [frontend, backend]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: docker build -t bread-master-demo .
+      - name: Check container web and API
+        shell: bash
+        run: |
+          docker run -d --name demo -p 8001:8000 bread-master-demo
+          trap 'docker logs demo; docker stop demo' EXIT
+          curl --retry 20 --retry-delay 2 --retry-connrefused --fail http://127.0.0.1:8001/api/v1/health
+          curl --fail http://127.0.0.1:8001/ > /tmp/demo-page.html
+          grep -q 'root' /tmp/demo-page.html
+          python - <<'PY'
+          import json, urllib.request
+          base='http://127.0.0.1:8001'
+          products=json.load(urllib.request.urlopen(base+'/api/v1/products'))
+          assert len(products)==176
+          request=urllib.request.Request(base+'/api/v1/questions',data=b'{"mode":"name"}',headers={'Content-Type':'application/json'})
+          question=json.load(urllib.request.urlopen(request))
+          assert len(question['options']) in (2,3)
+          PY

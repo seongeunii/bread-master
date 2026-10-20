@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: bread-master-demo
+    runtime: docker
+    plan: free
+    branch: main
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/v1/health
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: BREAD_DEMO
+        value: "1"
+      - key: BREAD_DB_PATH
+        value: /tmp/bread-master/demo.db

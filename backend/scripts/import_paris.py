@@ -7,11 +7,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parents[1]))
 from app.db import initialize, connect, DB_PATH
 
-def import_manifest(path):
+def import_manifest(path, backup=True):
     data = json.loads(Path(path).read_text())
     assert data['count'] == len(data['products'])
     initialize()
-    if DB_PATH.exists():
+    if backup and DB_PATH.exists():
         shutil.copy2(DB_PATH, DB_PATH.with_name('bread.before-paris-' + datetime.now().strftime('%Y%m%d%H%M%S') + '.db'))
     with connect() as db:
         count = 0
