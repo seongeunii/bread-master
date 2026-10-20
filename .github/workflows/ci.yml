@@ -57,7 +57,7 @@ jobs:
         run: |
           docker run -d --name demo -p 8001:8000 bread-master-demo
           trap 'docker logs demo; docker stop demo' EXIT
-          curl --retry 20 --retry-delay 2 --retry-connrefused --fail http://127.0.0.1:8001/api/v1/health
+          curl --retry 20 --retry-delay 2 --retry-all-errors --max-time 10 --fail http://127.0.0.1:8001/api/v1/health
           curl --fail http://127.0.0.1:8001/ > /tmp/demo-page.html
           grep -q 'root' /tmp/demo-page.html
           python - <<'PY'
