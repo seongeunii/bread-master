@@ -42,6 +42,7 @@ export default function App() {
     <main className="mx-auto max-w-6xl px-5 py-10 md:px-10">
       <div className="eyebrow">A LITTLE PRACTICE, A BETTER FIRST DAY</div>
       <div className="hero"><div><h1>{view === 'catalog' ? '빵 하나씩, 자신감 한 겹씩.' : view === 'inventory' ? '재고 등록도, 차근차근 연습해요.' : '연습은 가볍게, 실전은 자신 있게.'}</h1><p>{view === 'catalog' ? '상품의 모습과 이름을 익히고, 다음 근무를 가볍게 준비해요.' : view === 'inventory' ? '상품을 고르고 총수량을 수정한 뒤, 등록과 저장을 연습해요.' : '카테고리부터 상품명, 배달과 POS까지. 원하는 단계를 골라 연습해요.'}</p></div><span className="hero-stamp">LEARN<br/>BAKE<br/>REPEAT</span></div>
+      <div className="sample-notice"><span>교육용 데모</span> 로그인 없이 연습할 수 있어요. 학습·재고 기록은 임시 데이터이며 서버 재시작 시 초기화될 수 있어요.</div>
       <div className="sample-notice"><span>교육용 도감</span> 공식 사이트 상품은 출처 사진과 이름을 사용합니다. 학습 분류는 사용자 제공 POS 카테고리로 통일했습니다. 예시 상품은 별도 표시됩니다.</div>
       {error && <div className="error" role="alert">{error} <button onClick={() => void load()}>다시 연결</button></div>}
       {loading ? <p role="status">상품을 불러오는 중이에요…</p> : products.length > 0 && (view === 'learning' ? <Learning key={learningKey} initialMode={null} products={products} categories={categories}/> : view === 'catalog' ? <Catalog products={products} onDetail={setDetail}/>  : null)}
