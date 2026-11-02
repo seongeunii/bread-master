@@ -1,4 +1,4 @@
-"""로컬 개발용 API. 로그인과 관리자 기능은 다음 단계에서 추가합니다."""
+"""교육용 API. 계정 인증과 학습 기능을 별도 모듈에서 관리합니다."""
 from contextlib import asynccontextmanager
 from typing import Literal, Optional
 from fastapi import FastAPI, HTTPException
@@ -7,6 +7,8 @@ from .db import connect, initialize
 
 @asynccontextmanager
 async def lifespan(app):
+    from .auth import validate_configuration
+    validate_configuration()
     from .demo import enabled, prepare
     if enabled():
         prepare()
@@ -83,6 +85,8 @@ def pos_catalog():
         return catalog(db)
 
 from .demo import install_limits
+from .auth import install as install_auth
 from .web import install as install_web
 install_limits(app)
+install_auth(app)
 install_web(app)
