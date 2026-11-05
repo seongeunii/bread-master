@@ -2,10 +2,11 @@
 import json
 import random
 import uuid
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
 from .db import connect
 from .learning import all_products
+from .store_learning import active_scope, exercise, finish, remember
 
 router = APIRouter(prefix='/api/v1/delivery-orders', tags=['Delivery practice'])
 
@@ -22,24 +23,27 @@ class Submission(BaseModel):
     elapsed_ms: int = Field(strict=True, ge=0, le=86400000)
 
 @router.post('')
-def create_order(use_pos: bool = False):
+def create_order(use_pos: bool = False, scope=Depends(active_scope)):
     with connect() as db:
         from .pos import catalog
-        pool = [p for p in catalog(db)['products'] if p['illustration'] and not p.get('manual_price')]
+        layout = catalog(db, scope[1] if scope else None)
+        pool = [p for p in layout['products'] if p['illustration'] and not p.get('manual_price')]
         if len(pool) < 3:
             raise HTTPException(409, '배달 심화에는 상품이 최소 3개 필요합니다.')
         candidates = random.sample(pool, len(pool) if use_pos else min(15, len(pool)))
         ordered = random.sample(candidates, random.randint(1 if use_pos else 2, min(3 if use_pos else 4, len(candidates))))
         lines = [{'product_id': p['id'], 'name': p['name'], 'quantity': order_quantity()} for p in ordered]
-        options = [{'id': p['id'], 'illustration': p['illustration']} for p in (catalog(db)['products'] if use_pos else candidates)]
+        options = [{'id': p['id'], 'illustration': p['illustration']} for p in (layout['products'] if use_pos else candidates)]
         id = str(uuid.uuid4())
         db.execute('INSERT INTO delivery_orders(id,lines,options) VALUES(?,?,?)', (id, json.dumps(lines), json.dumps(options)))
+        remember(db, id, scope, 'pos-order' if use_pos else 'delivery-order', {p['id']: p['name'] for p in layout['products']})
     return {'id': id, 'lines': lines, 'options': options, 'is_sample': True}
 
 @router.post('/{order_id}/submit')
-def submit_order(order_id: str, body: Submission):
+def submit_order(order_id: str, body: Submission, scope=Depends(active_scope)):
     with connect() as db:
         db.execute('BEGIN IMMEDIATE')
+        tracked = exercise(db, order_id, scope)
         row = db.execute('SELECT * FROM delivery_orders WHERE id=?', (order_id,)).fetchone()
         if row is None:
             raise HTTPException(404, '주문을 찾을 수 없습니다.')
@@ -55,20 +59,23 @@ def submit_order(order_id: str, body: Submission):
         names = {p['id']: p['name'] for p in all_products(db)}
         from .pos import catalog
         names.update({p['id']:p['name'] for p in catalog(db)['products']})
+        if tracked:
+            names = {int(key): value for key, value in json.loads(tracked['snapshot']).items()}
         differences = [{'product_id': id, 'name': names.get(id, '상품'), 'expected': expected.get(id, 0), 'actual': cart.get(id, 0)}
                        for id in sorted(set(cart) | set(expected)) if cart.get(id, 0) != expected.get(id, 0)]
         result = {'is_correct': correct, 'points': 20 if correct else 0, 'elapsed_ms': body.elapsed_ms,
                   'feedback': '배달 성공! 상품과 수량이 모두 맞아요.' if correct else '배달 실수! 손님이 화났어요.',
                   'differences': differences}
         db.execute('UPDATE delivery_orders SET result=? WHERE id=?', (json.dumps(result), order_id))
+        finish(db, order_id, correct)
     return result
 
 
 @router.post('/pos/start')
-def create_pos_order():
-    return create_order(True)
+def create_pos_order(scope=Depends(active_scope)):
+    return create_order(True, scope)
 
 @router.post('/pos/{order_id}/submit')
-def submit_pos_order(order_id: str, body: Submission):
-    result = submit_order(order_id, body)
+def submit_pos_order(order_id: str, body: Submission, scope=Depends(active_scope)):
+    result = submit_order(order_id, body, scope)
     return {**result, 'feedback': '결제 연습 성공! 상품과 수량이 모두 맞아요.' if result['is_correct'] else '결제 실수! 등록 상품과 수량을 다시 확인해요.'}

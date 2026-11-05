@@ -1,10 +1,11 @@
 """재고 입력 연습 전용 API. 실제 재고 및 상품 정보는 변경하지 않습니다."""
 import json
 import uuid
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
 from .db import connect
 from .pos import catalog
+from .store_learning import active_scope, exercise, finish, remember
 
 router = APIRouter(prefix='/api/v1/inventory-practices', tags=['Inventory practice'])
 
@@ -17,9 +18,9 @@ class CategorySubmission(BaseModel):
     items: list[InventoryItem] = Field(min_length=1, max_length=500)
 
 @router.post('')
-def start_practice():
+def start_practice(scope=Depends(active_scope)):
     with connect() as db:
-        catalog_data = catalog(db)
+        catalog_data = catalog(db, scope[1] if scope else None)
         products = []
         for p in catalog_data['products']:
             if p.get('manual_price'):
@@ -29,24 +30,29 @@ def start_practice():
             raise HTTPException(409, '등록 연습에 사용할 상품이 없습니다.')
         practice_id = str(uuid.uuid4())
         db.execute('INSERT INTO inventory_practices(id,catalog) VALUES(?,?)', (practice_id, json.dumps(products)))
+        remember(db, practice_id, scope, 'inventory', catalog_data['categories'])
     return {'id': practice_id, 'products': products, 'categories': catalog_data['categories'], 'saved_categories': {}}
 
 @router.get('/{practice_id}')
-def get_practice(practice_id: str):
+def get_practice(practice_id: str, scope=Depends(active_scope)):
     with connect() as db:
+        tracked = exercise(db, practice_id, scope)
         row = db.execute('SELECT * FROM inventory_practices WHERE id=?', (practice_id,)).fetchone()
     if row is None:
         raise HTTPException(404, '재고 연습을 찾을 수 없습니다.')
     products = json.loads(row['catalog'])
     with connect() as db:
         categories = catalog(db)['categories'] if products and products[0]['category_id'] >= 1000 else list({p['category_id']: {'id': p['category_id'], 'name': p['category_name']} for p in products}.values())
+    if tracked:
+        categories = json.loads(tracked['snapshot'])
     return {'id': row['id'], 'products': products, 'categories': categories, 'saved_categories': json.loads(row['saved_categories'])}
 
 @router.post('/{practice_id}/categories')
-def save_category(practice_id: str, body: CategorySubmission):
+def save_category(practice_id: str, body: CategorySubmission, scope=Depends(active_scope)):
     with connect() as db:
         # 두 요청이 동시에 저장해도 다른 카테고리 결과를 덮어쓰지 않습니다.
         db.execute('BEGIN IMMEDIATE')
+        exercise(db, practice_id, scope)
         row = db.execute('SELECT * FROM inventory_practices WHERE id=?', (practice_id,)).fetchone()
         if row is None:
             raise HTTPException(404, '재고 연습을 찾을 수 없습니다.')
@@ -62,4 +68,6 @@ def save_category(practice_id: str, body: CategorySubmission):
         saved = json.loads(row['saved_categories'])
         saved[str(body.category_id)] = result
         db.execute('UPDATE inventory_practices SET saved_categories=? WHERE id=?', (json.dumps(saved), practice_id))
+        if len(saved) == len({p['category_id'] for p in json.loads(row['catalog'])}):
+            finish(db, practice_id, None)
     return result

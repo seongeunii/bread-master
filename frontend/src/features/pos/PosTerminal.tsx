@@ -4,8 +4,8 @@ import { BreadArt } from '../../components/BreadArt'
 import { won } from '../../lib/api'
 import './PosTerminal.css'
 export type PosProduct = Product & {pos_slot?: number}
-type Props = {categories: Category[]; products: PosProduct[]; category: number; page: number; onCategory:(id:number)=>void; onPage:(page:number)=>void; onProduct:(p:PosProduct)=>void; disabled?:boolean; selected?:number|null; locked?:boolean; ledger:ReactNode; controls:ReactNode; stock?:Record<number,number>}
-export function PosTerminal({categories,products,category,page,onCategory,onPage,onProduct,disabled,selected,locked,ledger,controls,stock}:Props) {
+type Props = {categories: Category[]; products: PosProduct[]; category: number; page: number; onCategory:(id:number)=>void; onPage:(page:number)=>void; onProduct:(p:PosProduct)=>void; onBlank?:(slot:number)=>void; disabled?:boolean; selected?:number|null; locked?:boolean; ledger:ReactNode; controls:ReactNode; stock?:Record<number,number>}
+export function PosTerminal({categories,products,category,page,onCategory,onPage,onProduct,onBlank,disabled,selected,locked,ledger,controls,stock}:Props) {
   const rows = products.filter(p=>p.category_id===category)
   const pages = Math.max(1,Math.ceil((Math.max(-1,...rows.map((p,i)=>p.pos_slot ?? i))+1)/25))
   return <section className="training-terminal" aria-label="교육용 POS 단말기">
@@ -13,7 +13,7 @@ export function PosTerminal({categories,products,category,page,onCategory,onPage
     <div className="terminal-tabs" aria-label="POS 카테고리">{categories.map(c=><button key={c.id} aria-pressed={category===c.id} disabled={disabled || (locked && c.id!==category)} className={category===c.id?'selected':''} onClick={()=>onCategory(c.id)}>{c.name}</button>)}</div>
     <div className="terminal-body"><section className="terminal-ledger" aria-label="등록 내역"><h3>등록 내역</h3>{ledger}</section><section className="terminal-products" aria-label="POS 상품 선택"><div className="terminal-grid">{Array.from({length:25},(_,slot)=>{
       const p=rows.find((p,i)=>(p.pos_slot ?? i)===page*25+slot)
-      return p ? <button key={slot} aria-label={`POS 상품 ${p.name}`} aria-pressed={selected===p.id} disabled={disabled} onClick={()=>onProduct(p)}><BreadArt kind={p.illustration}/><span>{p.name}</span><small>{stock ? `재고 ${stock[p.id]}개` : p.manual_price ? '가격 직접 입력' : p.price_known ? won(p.price) : '가격 미등록'}</small></button> : <div key={slot} className="terminal-blank" aria-label="빈 상품 칸"/>
+      return p ? <button key={slot} aria-label={`POS 상품 ${p.name}`} aria-pressed={selected===p.id} disabled={disabled} onClick={()=>onProduct(p)}><BreadArt kind={p.illustration}/><span>{p.name}</span><small>{stock ? `재고 ${stock[p.id]}개` : p.manual_price ? '가격 직접 입력' : p.price_known ? won(p.price) : '가격 미등록'}</small></button> : onBlank ? <button key={slot} className="terminal-blank" disabled={disabled} onClick={() => onBlank(page * 25 + slot)}>빈 칸 {page * 25 + slot + 1}</button> : <div key={slot} className="terminal-blank" aria-label="빈 상품 칸"/>
     })}</div>{!category && <p>상단에서 카테고리를 선택하세요.</p>}<div className="pagination"><button disabled={disabled || page===0} onClick={()=>onPage(page-1)}>← 이전 페이지</button><span>{page+1} / {pages}</span><button disabled={disabled || page+1>=pages} onClick={()=>onPage(page+1)}>다음 페이지 →</button></div></section></div>
     <div className="terminal-controls">{controls}</div>
     <small className="terminal-note">사용자 제공 POS 분류·가격과 사진의 칸 위치를 반영했습니다. 상품 사진은 공식 사이트 참고 이미지이며 미확인 사진은 별도 표시합니다.</small>

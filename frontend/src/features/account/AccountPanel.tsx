@@ -14,9 +14,10 @@ type Props = {
   onSignedIn: (user: Account) => void
   onSignedOut: () => void
   onPractice: () => void
+  onManage: () => void
 }
 
-export function AccountPanel({ user, enabled, loading, connectionError, onRetry, onSignedIn, onSignedOut, onPractice }: Props) {
+export function AccountPanel({ user, enabled, loading, connectionError, onRetry, onSignedIn, onSignedOut, onPractice, onManage }: Props) {
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [email, setEmail] = useState('')
   const [name, setName] = useState('')
@@ -64,8 +65,8 @@ export function AccountPanel({ user, enabled, loading, connectionError, onRetry,
         <h2 id="account-title">{user.display_name}님의 계정</h2>
         <p className="account-intro">오늘도 빵 하나씩, 차근차근 익혀 봐요.</p>
         <dl className="account-details"><dt>이름</dt><dd>{user.display_name}</dd><dt>이메일</dt><dd>{user.email}</dd></dl>
-        <StorePanel key={user.id}/>
-        <p className="account-note">현재 연습 결과는 계정에 저장되지 않아요.</p>
+        <StorePanel key={user.id} onManage={onManage}/>
+        <p className="account-note">매장 참여가 승인되면 내 학습 현황을 확인할 수 있어요.</p>
         {error && <p role="alert" className="account-error">{error}</p>}
         <div className="account-actions"><button className="primary" onClick={onPractice}>연습하러 가기</button><button className="account-secondary" disabled={busy} onClick={() => void logout()}>{busy ? '로그아웃 중…' : '로그아웃'}</button></div>
       </> : <>
@@ -82,7 +83,7 @@ export function AccountPanel({ user, enabled, loading, connectionError, onRetry,
             <button className="primary account-submit" type="submit">{busy ? '확인하고 있어요…' : mode === 'login' ? '로그인' : '가입하고 시작하기'}</button>
           </fieldset>
         </form>
-        <p className="account-note">현재 연습 결과는 계정에 저장되지 않아요. 가입 후 근무 매장에 참여할 수 있어요.</p>
+        <p className="account-note">매장 참여가 승인되면 내 학습 현황을 확인할 수 있어요. 가입 후 근무 매장에 참여할 수 있어요.</p>
       </>}
   </section>
 }

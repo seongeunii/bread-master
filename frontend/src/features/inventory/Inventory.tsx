@@ -12,7 +12,8 @@ function quantities(practice: InventoryPractice): Record<number, number> {
   }
   return values
 }
-export function Inventory() {
+export function Inventory({ accountId }: { accountId?: string }) {
+  const storageKey = accountId ? `${STORAGE_KEY}:${accountId}` : STORAGE_KEY
   const [practice, setPractice] = useState<InventoryPractice | null>(null)
   const [saved, setSaved] = useState<Record<number, number>>({})
   const [registered, setRegistered] = useState<Record<number, number>>({})
@@ -29,7 +30,7 @@ export function Inventory() {
   useEffect(() => {
     const controller = new AbortController()
     let id: string | null = null
-    try { id = sessionStorage.getItem(STORAGE_KEY) } catch { /* 저장 공간 없이도 연습 가능 */ }
+    try { id = sessionStorage.getItem(storageKey) } catch { /* 저장 공간 없이도 연습 가능 */ }
     if (id) {
       api<InventoryPractice>(`/inventory-practices/${id}`, undefined, controller.signal)
         .then(p => { const values = quantities(p); setPractice(p); setSaved(values); setRegistered(values) })
@@ -40,7 +41,7 @@ export function Inventory() {
       Promise.resolve().then(() => { if (!controller.signal.aborted) setRestoring(false) })
     }
     return () => controller.abort()
-  }, [])
+  }, [storageKey])
   async function start() {
     if (inFlight.current) return
     inFlight.current = true; setBusy(true); setError(''); setMessage('')
@@ -48,7 +49,7 @@ export function Inventory() {
       const p = await api<InventoryPractice>('/inventory-practices', {})
       const values = quantities(p)
       setPractice(p); setSaved(values); setRegistered(values); setCategory(0); setSelected(null); setQuantity(''); setPage(0); setUnavailable(false)
-      try { sessionStorage.setItem(STORAGE_KEY, p.id) } catch { /* 저장 공간 없이도 연습 가능 */ }
+      try { sessionStorage.setItem(storageKey, p.id) } catch { /* 저장 공간 없이도 연습 가능 */ }
     } catch (e) { setError(e instanceof Error ? e.message : '연습을 시작하지 못했어요.') }
     finally { inFlight.current = false; setBusy(false) }
   }
