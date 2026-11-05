@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { api } from '../../lib/api'
+import { uploadMenuPhoto } from './uploadMenuPhoto'
 import { MenuImport } from './MenuImport'
 import { CategoryManager } from './CategoryManager'
 import type { CategoryDraft } from './CategoryManager'
@@ -17,7 +18,6 @@ type Draft = {
   name: string
   price: string
   photo: string
-  name_group: string
 }
 type Progress = {
   id: string
@@ -91,7 +91,6 @@ export function StoreAdmin({ tab = 'menu' }: { tab?: 'menu' | 'progress' }) {
       name: product?.name ?? '',
       price: String(product?.price ?? ''),
       photo: product && (product.illustration.startsWith('https://') || product.illustration.startsWith('/api/v1/store-admin/photos/')) ? product.illustration : '',
-      name_group: product?.name_group ?? '',
     })
   }
 
@@ -138,14 +137,8 @@ export function StoreAdmin({ tab = 'menu' }: { tab?: 'menu' | 'progress' }) {
     if (file.size > 5 * 1024 * 1024) { setError('사진은 5MB 이하로 올려 주세요.'); return }
     setBusy(true)
     try {
-      const response = await fetch('/api/v1/store-admin/photos', {
-        method: 'POST', credentials: 'same-origin',
-        headers: { 'X-Bread-Client': 'web', 'Content-Type': file.type || 'application/octet-stream' },
-        body: file,
-      })
-      const result = await response.json()
-      if (!response.ok) throw new Error(typeof result.detail === 'string' ? result.detail : '사진을 올리지 못했어요.')
-      setDraft({ ...draft, photo: result.url })
+      const url = await uploadMenuPhoto(file)
+      setDraft({ ...draft, photo: url })
       setNotice('사진을 올렸어요. 메뉴 저장을 눌러 반영하세요.')
     } catch (err) { setError(err instanceof Error ? err.message : '업로드에 실패했어요.') }
     finally { setBusy(false) }
@@ -173,7 +166,7 @@ export function StoreAdmin({ tab = 'menu' }: { tab?: 'menu' | 'progress' }) {
             <label>사진 파일 업로드<input type="file" accept="image/jpeg,image/png,image/webp" onChange={event => { void uploadPhoto(event.target.files?.[0]); event.target.value = '' }}/></label>
             <small>JPG·PNG·WebP, 최대 5MB. 사진을 올린 뒤 메뉴를 저장하세요.</small>
             {draft.photo && <img className="store-photo-preview" src={draft.photo} alt="등록할 상품 사진" referrerPolicy="no-referrer"/>}
-            <label>유사 상품 그룹<input value={draft.name_group} maxLength={60} onChange={e => setDraft({ ...draft, name_group: e.target.value })}/></label>
+            <small>유사 상품 그룹은 상단 퀴즈 관리에서 구성하세요.</small>
             <button className="primary" type="submit">메뉴 저장</button>
           </fieldset>
         </form> : <p>등록하거나 수정할 칸을 선택하세요.</p>}/> : !error && <p role="status">매장 메뉴를 불러오는 중…</p>}

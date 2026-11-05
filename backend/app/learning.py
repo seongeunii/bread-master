@@ -24,10 +24,19 @@ def create_question(mode, exclude_ids, scope=None):
             pool = [p for p in layout['products'] if p.get('source_product_id', p['id']) is not None]
         pool.sort(key=lambda p: p['id'])
         eligible = [p for p in pool if p['id'] not in exclude_ids]
+        matching_groups = []
         if mode in ('name', 'similar-photo'):
-            # 비슷한 이름은 명시적으로 분류합니다. 카테고리가 같다는 이유로 섞지 않습니다.
-            eligible = [p for p in eligible if p.get('name_group') and
-                        sum(other.get('name_group') == p.get('name_group') for other in pool) >= 2]
+            if scope:
+                from .quiz_groups import playable_groups
+                matching_groups = playable_groups(db, scope[1], pool)
+            else:
+                matching_groups = [[p['id'] for p in pool if p.get('name_group') == group]
+                                   for group in {p.get('name_group') for p in pool} if group]
+                matching_groups = [ids for ids in matching_groups if len(ids) >= 2]
+            eligible = [p for p in eligible if any(p['id'] in ids for ids in matching_groups)]
+            # A two-product store group must still support a full five-question round.
+            if scope and not eligible and matching_groups:
+                eligible = [p for p in pool if any(p['id'] in ids for ids in matching_groups)]
         if not eligible:
             raise HTTPException(409, '출제할 상품이 부족합니다. 유사 상품명 그룹 설정 또는 새로운 라운드가 필요합니다.')
         target = random.choice(eligible)
@@ -35,11 +44,12 @@ def create_question(mode, exclude_ids, scope=None):
             active_categories = {p['category_id'] for p in pool}
             choices = [c for c in layout['categories'] if c['id'] in active_categories]
             correct_id = target['category_id']
-        elif mode == 'name':
-            choices = [{'id': p['id'], 'name': p['name']} for p in pool if p.get('name_group') == target.get('name_group')]
-            correct_id = target['id']
-        elif mode == 'similar-photo':
-            choices = [{'id': p['id'], 'illustration': p['illustration']} for p in pool if p.get('name_group') == target.get('name_group')]
+        elif mode in ('name', 'similar-photo'):
+            members = random.choice([ids for ids in matching_groups if target['id'] in ids])
+            others = [p for p in pool if p['id'] in members and p['id'] != target['id']]
+            selected = [target] + random.sample(others, min(3, len(others)))
+            field = 'name' if mode == 'name' else 'illustration'
+            choices = [{'id': p['id'], field: p[field]} for p in selected]
             correct_id = target['id']
         elif mode == 'delivery':
             if len(pool) < 4:

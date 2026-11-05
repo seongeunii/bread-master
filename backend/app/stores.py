@@ -62,6 +62,8 @@ def create(body: StoreInput, account=Depends(require_account)):
         store_id = uuid.uuid4().hex
         db.execute('INSERT INTO stores VALUES (?, ?, ?)', (store_id, body.name, secrets.token_hex(6)))
         db.execute("INSERT INTO store_memberships VALUES (?, ?, 'admin', 'active')", (user_id, store_id))
+        from .quiz_groups import initialize_store_groups
+        initialize_store_groups(db, store_id)
     return mine(account)
 
 

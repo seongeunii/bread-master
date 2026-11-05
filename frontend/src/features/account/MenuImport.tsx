@@ -1,10 +1,11 @@
+import { uploadMenuPhoto } from './uploadMenuPhoto'
 import { useState } from 'react'
 import { PhotoRecognition } from './PhotoRecognition'
 import type { MenuCandidate } from './menuCandidates'
 import type { Category } from '../../lib/api'
 import { api } from '../../lib/api'
 
-type Row = MenuCandidate
+type Row = MenuCandidate & { photoError?: string }
 
 export function MenuImport({ categories, onSaved }: { categories: Category[]; onSaved: () => Promise<void> }) {
   const [source, setSource] = useState<'file' | 'photo' | 'link'>('file')
@@ -62,7 +63,7 @@ export function MenuImport({ categories, onSaved }: { categories: Category[]; on
   }
 
   async function save() {
-    if (busy) return
+    if (busy || rows.some(row => row.photoError)) return
     setBusy(true)
     setError('')
     try {
@@ -74,15 +75,28 @@ export function MenuImport({ categories, onSaved }: { categories: Category[]; on
         })),
       })
       setRows([])
-      setMessage('메뉴를 일괄 등록했어요.')
+      setMessage('메뉴를 일괄 등록했어요. 퀴즈 관리에서 이름 추천을 갱신해 보세요.')
       await onSaved()
     } catch (err) { setError(err instanceof Error ? err.message : '등록하지 못했어요.') }
     finally { setBusy(false) }
   }
 
   function change(index: number, patch: Partial<Row>) {
-    setRows(rows.map((row, i) => i === index ? { ...row, ...patch } : row))
+    setError('')
+    setRows(previous => previous.map((row, i) => i === index ? { ...row, ...patch } : row))
     setRequestId(crypto.randomUUID())
+  }
+
+  async function attachPhoto(index: number, file?: File) {
+    if (!file || busy) return
+    setBusy(true)
+    change(index, { photoError: undefined })
+    try {
+      const photo = await uploadMenuPhoto(file)
+      change(index, { photo, photoError: undefined })
+    } catch (err) {
+      change(index, { photoError: err instanceof Error ? err.message : '사진을 올리지 못했어요.' })
+    } finally { setBusy(false) }
   }
 
   return <details className="category-manager">
@@ -110,7 +124,7 @@ export function MenuImport({ categories, onSaved }: { categories: Category[]; on
       {rows.length > 0 && <form onSubmit={event => { event.preventDefault(); void save() }}>
         <h3>등록 전 확인</h3>
         {sourceUrl && <p><a href={sourceUrl} target="_blank" rel="noreferrer">공식 출처 확인 ↗</a></p>}
-        {source === 'photo' && <p>인식한 이름·가격·칸을 원본과 대조하세요. 상품 사진은 메뉴 등록 후 별도로 연결할 수 있어요.</p>}
+        {source === 'photo' && <p>인식한 이름·가격·칸을 원본과 대조하세요. 각 후보에 상품 사진을 첨부한 뒤 함께 등록할 수 있어요.</p>}
         <p>새 메뉴를 추가합니다. 기존 상품과 겹치는 칸이 있으면 등록을 중단해요.</p>
         {rows.map((row, index) => <fieldset key={index} className="import-row">
           <legend>{index + 1}행</legend>
@@ -122,10 +136,13 @@ export function MenuImport({ categories, onSaved }: { categories: Category[]; on
             <option value="">선택하세요</option>{categories.map(category => <option key={category.id} value={category.id}>{category.name}</option>)}
           </select></label>
           <label>칸번호<input required type="number" min={1} max={500} value={row.slot} onChange={event => change(index, { slot: event.target.value })}/></label>
-          <label>사진주소<input type="url" maxLength={2048} value={row.photo} onChange={event => change(index, { photo: event.target.value })}/></label>
+          <label>사진주소 또는 업로드 경로<input type="text" maxLength={2048} value={row.photo} onChange={event => change(index, { photo: event.target.value, photoError: undefined })}/></label>
+          <label>상품 사진 첨부<input type="file" accept="image/jpeg,image/png,image/webp" onChange={event => { void attachPhoto(index, event.target.files?.[0]); event.target.value = '' }}/><small>JPG·PNG·WebP, 최대 5MB. 다시 선택하면 교체돼요.</small></label>
+          {row.photoError && <p role="alert" className="account-error">{row.photoError} 다시 선택하거나 사진 없이 등록하세요.</p>}
+          {(row.photo || row.photoError) && <button type="button" className="account-secondary" onClick={() => change(index, { photo: '', photoError: undefined })}>사진 없이 등록</button>}
           <button type="button" className="account-secondary" onClick={() => { setRows(rows.filter((_, i) => i !== index)); setRequestId(crypto.randomUUID()) }}>이 후보 제외</button>
         </fieldset>)}
-        <button className="primary" type="submit">확인한 메뉴 등록</button>
+        <button className="primary" type="submit" disabled={rows.some(row => !!row.photoError)}>확인한 메뉴 등록</button>
         <button className="account-secondary" type="button" onClick={() => setRows([])}>미리보기 닫기</button>
       </form>}
     </fieldset>

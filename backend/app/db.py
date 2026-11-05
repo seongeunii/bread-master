@@ -78,6 +78,17 @@ def initialize():
             category_id INTEGER NOT NULL, pos_slot INTEGER NOT NULL, name TEXT NOT NULL,
             price INTEGER NOT NULL, illustration TEXT NOT NULL, name_group TEXT, source_url TEXT,
             PRIMARY KEY(store_id, product_id), UNIQUE(store_id, category_id, pos_slot));
+        CREATE TABLE IF NOT EXISTS store_quiz_settings(
+            store_id TEXT PRIMARY KEY REFERENCES stores(id), fingerprint TEXT);
+        CREATE TABLE IF NOT EXISTS store_quiz_groups(
+            id TEXT PRIMARY KEY, store_id TEXT NOT NULL REFERENCES stores(id),
+            name TEXT NOT NULL, status TEXT NOT NULL CHECK(status IN ('proposed','approved','dismissed')),
+            enabled INTEGER NOT NULL DEFAULT 0, reason TEXT NOT NULL DEFAULT '',
+            candidate_key TEXT, deleted INTEGER NOT NULL DEFAULT 0,
+            UNIQUE(store_id,candidate_key));
+        CREATE TABLE IF NOT EXISTS store_quiz_group_products(
+            group_id TEXT NOT NULL REFERENCES store_quiz_groups(id) ON DELETE CASCADE,
+            product_id INTEGER NOT NULL, PRIMARY KEY(group_id,product_id));
         CREATE TABLE IF NOT EXISTS store_exercises(
             id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
             store_id TEXT NOT NULL REFERENCES stores(id), mode TEXT NOT NULL, snapshot TEXT,
@@ -95,3 +106,7 @@ def initialize():
         db.executemany('INSERT OR IGNORE INTO products(id,name,price,category_id,illustration,description) VALUES(?,?,?,?,?,?)', SEED)
         for group, ids in [('croissant', (1, 11, 12)), ('salt', (5, 9, 10)), ('loaf', (3, 4)), ('sandwich', (7, 8))]:
             db.executemany('UPDATE products SET name_group=? WHERE id=? AND is_sample=1', [(group, id) for id in ids])
+
+        from .quiz_groups import initialize_store_groups
+        for row in db.execute('SELECT id FROM stores').fetchall():
+            initialize_store_groups(db, row['id'])

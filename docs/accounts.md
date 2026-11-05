@@ -132,3 +132,7 @@ POS 사진은 브라우저에서 한국어·영어 OCR로 처리합니다. JPG·
 참고 문서
 - [Tesseract.js API](https://github.com/naptha/tesseract.js/blob/master/docs/api.md)
 - [Tesseract.js 모델·코어 로딩](https://github.com/naptha/tesseract.js/blob/master/docs/local-installation.md)
+
+## 관리자 퀴즈 관리
+
+상단 메뉴는 POS 메뉴 관리 / 퀴즈 관리 / 근무자 학습 현황 / 매장 설정입니다. 기존 메뉴의 그룹명 문자열 입력은 퀴즈 관리 화면으로 통합했습니다. 이름 기반 추천은 관리자 승인 후 출제하며, 일괄 메뉴 후보에서도 사진 파일을 함께 연결할 수 있습니다. [상세 흐름과 저장·API·검증](quiz-management.md)을 참고하세요.

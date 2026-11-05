@@ -101,5 +101,6 @@ install_auth(app)
 app.include_router(stores_router)
 from .store_admin import router as store_admin_router
 from . import store_catalog, store_import, store_link
+from . import quiz_groups
 app.include_router(store_admin_router)
 install_web(app)
