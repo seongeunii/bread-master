@@ -200,3 +200,44 @@ def test_production_requires_secure_origin_and_persistent_database(client, monke
     monkeypatch.setenv('BREAD_DEMO', '1')
     monkeypatch.delenv('BREAD_PUBLIC_ORIGIN')
     auth.validate_configuration()
+
+
+def test_store_approval_is_limited_to_own_store(client):
+    stores = '/api/v1/stores'
+    assert client.get(stores + '/mine').status_code == 401
+    register(client, email='owner@example.com')
+    owner_cookie = client.cookies[auth.COOKIE_NAME]
+    owner = client.post(stores, json={'name': '연습 매장'}, headers=HEADERS)
+    assert owner.status_code == 201
+    code = owner.json()['invite_code']
+    assert client.post(stores, json={'name': '중복 매장'}, headers=HEADERS).status_code == 409
+
+    client.cookies.clear()
+    worker = register(client, email='worker@example.com').json()
+    worker_cookie = client.cookies[auth.COOKIE_NAME]
+    pending = client.post(stores + '/join', json={'code': code.upper()}, headers=HEADERS)
+    assert pending.status_code == 201
+    assert pending.json()['status'] == 'pending'
+    assert 'invite_code' not in pending.json()
+    assert client.post(stores + '/join', json={'code': code}, headers=HEADERS).status_code == 409
+    approve = f"{stores}/requests/{worker['id']}/approve"
+    assert client.post(approve, json={}, headers=HEADERS).status_code == 403
+
+    client.cookies.clear()
+    register(client, email='other-owner@example.com')
+    assert client.post(stores, json={'name': '다른 매장'}, headers=HEADERS).status_code == 201
+    assert client.post(approve, json={}, headers=HEADERS).status_code == 404
+    assert client.get(stores + '/mine').json()['requests'] == []
+
+    client.cookies.clear()
+    client.cookies.set(auth.COOKIE_NAME, owner_cookie)
+    assert client.get(stores + '/mine').json()['requests'][0]['user_id'] == worker['id']
+    assert client.post(approve, json={}).status_code == 403
+    assert client.post(approve, json={}, headers=HEADERS).status_code == 204
+    assert client.post(approve, json={}, headers=HEADERS).status_code == 404
+
+    client.cookies.clear()
+    client.cookies.set(auth.COOKIE_NAME, worker_cookie)
+    assert client.get(stores + '/mine').json()['status'] == 'active'
+    assert client.post(stores + '/cancel', json={}, headers=HEADERS).status_code == 204
+    assert client.get(stores + '/mine').json()['role'] == 'worker'

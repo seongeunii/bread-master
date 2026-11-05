@@ -223,7 +223,7 @@ def install(app):
     @app.middleware('http')
     async def auth_headers(request, call_next):
         response = await call_next(request)
-        if request.url.path.startswith('/api/v1/auth/'):
+        if request.url.path.startswith(('/api/v1/auth/', '/api/v1/stores')):
             response.headers['Cache-Control'] = 'no-store'
             response.headers['X-Content-Type-Options'] = 'nosniff'
         return response

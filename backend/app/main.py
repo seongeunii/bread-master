@@ -86,7 +86,9 @@ def pos_catalog():
 
 from .demo import install_limits
 from .auth import install as install_auth
+from .stores import router as stores_router
 from .web import install as install_web
 install_limits(app)
 install_auth(app)
+app.include_router(stores_router)
 install_web(app)
