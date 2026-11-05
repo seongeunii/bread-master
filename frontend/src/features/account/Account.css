@@ -33,3 +33,7 @@
 .category-edit-row input { display: block; width: 100%; padding: 8px; border: 1px solid #d9c9b4; }
 .category-edit-row button { padding: 8px; border: 1px solid #d9c9b4; border-radius: 6px; }
 .store-photo-preview { max-width: 150px; max-height: 110px; object-fit: contain; }
+
+.import-row { display: flex; gap: 12px; flex-wrap: wrap; padding: 12px !important; border: 1px solid #d9c9b4 !important; margin: 12px 0; }
+.import-row label { display: grid; flex: 1; min-width: 140px; }
+.import-row input, .import-row select { min-width: 0; padding: 8px; border: 1px solid #d9c9b4; }
