@@ -66,6 +66,10 @@ def initialize():
             role TEXT NOT NULL CHECK(role IN ('admin', 'worker')),
             status TEXT NOT NULL CHECK(status IN ('active', 'pending')));
         CREATE INDEX IF NOT EXISTS store_memberships_requests ON store_memberships(store_id, status);
+        CREATE TABLE IF NOT EXISTS store_categories(
+            store_id TEXT PRIMARY KEY REFERENCES stores(id), items TEXT NOT NULL);
+        CREATE TABLE IF NOT EXISTS store_photos(
+            id TEXT PRIMARY KEY, store_id TEXT NOT NULL REFERENCES stores(id), data BLOB NOT NULL);
         CREATE TABLE IF NOT EXISTS store_menus(
             store_id TEXT NOT NULL REFERENCES stores(id), product_id INTEGER NOT NULL,
             category_id INTEGER NOT NULL, pos_slot INTEGER NOT NULL, name TEXT NOT NULL,

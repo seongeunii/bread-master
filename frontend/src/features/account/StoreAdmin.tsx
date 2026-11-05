@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { api } from '../../lib/api'
+import { CategoryManager } from './CategoryManager'
+import type { CategoryDraft } from './CategoryManager'
 import type { Category } from '../../lib/api'
 import { PosTerminal } from '../pos/PosTerminal'
 import type { PosProduct } from '../pos/PosTerminal'
@@ -87,7 +89,7 @@ export function StoreAdmin({ tab = 'menu' }: { tab?: 'menu' | 'progress' }) {
       pos_slot: product?.pos_slot ?? slot,
       name: product?.name ?? '',
       price: String(product?.price ?? ''),
-      photo: product?.illustration.startsWith('https://') ? product.illustration : '',
+      photo: product && (product.illustration.startsWith('https://') || product.illustration.startsWith('/api/v1/store-admin/photos/')) ? product.illustration : '',
       name_group: product?.name_group ?? '',
     })
   }
@@ -111,10 +113,48 @@ export function StoreAdmin({ tab = 'menu' }: { tab?: 'menu' | 'progress' }) {
     } finally { setBusy(false) }
   }
 
+
+  async function saveCategories(items: CategoryDraft[]) {
+    if (busy) return
+    setBusy(true)
+    setError('')
+    setNotice('')
+    try {
+      const data = await api<Layout>('/store-admin/categories', { items })
+      setLayout(data)
+      if (!data.categories.some(item => item.id === category)) setCategory(data.categories[0].id)
+      setDraft(undefined)
+      setPage(0)
+      setNotice('카테고리를 저장했어요.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '저장하지 못했어요.')
+    } finally { setBusy(false) }
+  }
+
+  async function uploadPhoto(file?: File) {
+    if (!file || !draft || busy) return
+    setError('')
+    if (file.size > 5 * 1024 * 1024) { setError('사진은 5MB 이하로 올려 주세요.'); return }
+    setBusy(true)
+    try {
+      const response = await fetch('/api/v1/store-admin/photos', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'X-Bread-Client': 'web', 'Content-Type': file.type || 'application/octet-stream' },
+        body: file,
+      })
+      const result = await response.json()
+      if (!response.ok) throw new Error(typeof result.detail === 'string' ? result.detail : '사진을 올리지 못했어요.')
+      setDraft({ ...draft, photo: result.url })
+      setNotice('사진을 올렸어요. 메뉴 저장을 눌러 반영하세요.')
+    } catch (err) { setError(err instanceof Error ? err.message : '업로드에 실패했어요.') }
+    finally { setBusy(false) }
+  }
+
   return <section aria-label="매장 관리">
     {tab === 'progress' ? <WorkerProgress/> : <>
       {error && <p role="alert" className="account-error">{error}</p>}
       {notice && <p role="status">{notice}</p>}
+      {layout && <CategoryManager key={JSON.stringify(layout.categories)} categories={layout.categories} occupied={new Set(layout.products.map(product => product.category_id))} busy={busy} onSave={items => void saveCategories(items)}/>}
       {layout ? <PosTerminal categories={layout.categories} products={layout.products} category={category}
         page={page} onCategory={id => { setCategory(id); setPage(0) }} onPage={setPage}
         onProduct={product => edit(product)} onBlank={slot => edit(undefined, slot)} disabled={busy}
@@ -127,7 +167,10 @@ export function StoreAdmin({ tab = 'menu' }: { tab?: 'menu' | 'progress' }) {
               {layout.categories.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
             </select></label>
             <label>칸 번호<input type="number" required min={1} max={500} value={draft.pos_slot + 1} onChange={e => setDraft({ ...draft, pos_slot: Number(e.target.value) - 1 })}/></label>
-            <label>사진 주소 (HTTPS)<input type="url" value={draft.photo} maxLength={2048} onChange={e => setDraft({ ...draft, photo: e.target.value })}/></label>
+            <label>사진 주소 (HTTPS) 또는 업로드 경로<input type="text" value={draft.photo} maxLength={2048} onChange={e => setDraft({ ...draft, photo: e.target.value })}/></label>
+            <label>사진 파일 업로드<input type="file" accept="image/jpeg,image/png,image/webp" onChange={event => { void uploadPhoto(event.target.files?.[0]); event.target.value = '' }}/></label>
+            <small>JPG·PNG·WebP, 최대 5MB. 사진을 올린 뒤 메뉴를 저장하세요.</small>
+            {draft.photo && <img className="store-photo-preview" src={draft.photo} alt="등록할 상품 사진" referrerPolicy="no-referrer"/>}
             <label>유사 상품 그룹<input value={draft.name_group} maxLength={60} onChange={e => setDraft({ ...draft, name_group: e.target.value })}/></label>
             <button className="primary" type="submit">메뉴 저장</button>
           </fieldset>
