@@ -124,6 +124,7 @@ class Account(BaseModel):
 class SessionStatus(BaseModel):
     enabled: bool
     user: Optional[Account]
+    store_role: Optional[str] = None
 
 
 def find_account(request: Request):
@@ -162,7 +163,12 @@ def start_session(db, request: Request, response: Response, user_id: str):
 @router.get('/session', response_model=SessionStatus)
 def session(request: Request):
     account = find_account(request)
-    return {'enabled': enabled(), 'user': dict(account) if account else None}
+    role = None
+    if account:
+        with connect() as db:
+            member = db.execute("SELECT role FROM store_memberships WHERE user_id=? AND status='active'", (account['id'],)).fetchone()
+            role = member['role'] if member else None
+    return {'enabled': enabled(), 'user': dict(account) if account else None, 'store_role': role}
 
 
 @router.get('/me', response_model=Account)

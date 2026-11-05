@@ -26,7 +26,7 @@ def register(client, **changes):
 
 
 def test_register_session_me_and_logout(client):
-    assert client.get('/api/v1/auth/session').json() == {'enabled': True, 'user': None}
+    assert client.get('/api/v1/auth/session').json() == {'enabled': True, 'user': None, 'store_role': None}
     assert client.get('/api/v1/auth/me').status_code == 401
     response = register(client)
     assert response.status_code == 201
@@ -173,7 +173,7 @@ def test_login_attempt_limit_survives_initialize_and_expires(client):
 
 def test_demo_cannot_collect_credentials(client, monkeypatch):
     monkeypatch.setenv('BREAD_DEMO', '1')
-    assert client.get('/api/v1/auth/session').json() == {'enabled': False, 'user': None}
+    assert client.get('/api/v1/auth/session').json() == {'enabled': False, 'user': None, 'store_role': None}
     assert register(client).status_code == 503
     assert client.post('/api/v1/auth/login', json={'email': USER['email'], 'password': USER['password']}, headers=HEADERS).status_code == 503
     assert client.get('/api/v1/auth/me').status_code == 503
@@ -210,6 +210,7 @@ def test_store_approval_is_limited_to_own_store(client):
     owner = client.post(stores, json={'name': '연습 매장'}, headers=HEADERS)
     assert owner.status_code == 201
     code = owner.json()['invite_code']
+    assert client.get('/api/v1/auth/session').json()['store_role'] == 'admin'
     assert client.post(stores, json={'name': '중복 매장'}, headers=HEADERS).status_code == 409
 
     client.cookies.clear()
@@ -218,6 +219,7 @@ def test_store_approval_is_limited_to_own_store(client):
     pending = client.post(stores + '/join', json={'code': code.upper()}, headers=HEADERS)
     assert pending.status_code == 201
     assert pending.json()['status'] == 'pending'
+    assert client.get('/api/v1/auth/session').json()['store_role'] is None
     assert 'invite_code' not in pending.json()
     assert client.post(stores + '/join', json={'code': code}, headers=HEADERS).status_code == 409
     approve = f"{stores}/requests/{worker['id']}/approve"
@@ -239,6 +241,7 @@ def test_store_approval_is_limited_to_own_store(client):
     client.cookies.clear()
     client.cookies.set(auth.COOKIE_NAME, worker_cookie)
     assert client.get(stores + '/mine').json()['status'] == 'active'
+    assert client.get('/api/v1/auth/session').json()['store_role'] == 'worker'
     assert client.post(stores + '/cancel', json={}, headers=HEADERS).status_code == 204
     assert client.get(stores + '/mine').json()['role'] == 'worker'
 
