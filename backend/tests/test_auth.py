@@ -306,3 +306,52 @@ def test_store_menus_and_progress_respect_membership_and_keep_original_grade(cli
     assert post('/stores', {'name': '다른 매장'}).status_code == 201
     assert get('/store-admin/progress').json() == []
     assert get(f"/products/{item['id']}").status_code == 404
+
+
+def test_store_categories_and_uploaded_photos_are_scoped(client):
+    import io
+    from PIL import Image
+
+    register(client, email='photo-owner@example.com')
+    owner_token = client.cookies[auth.COOKIE_NAME]
+    client.post('/api/v1/stores', json={'name': '사진 매장'}, headers=HEADERS)
+    layout = client.get('/api/v1/store-admin/menu').json()
+    categories = layout['categories']
+    changed = [{**category, 'name': '새 분류명' if index == 0 else category['name']} for index, category in enumerate(categories)]
+    response = client.post('/api/v1/store-admin/categories', json={'items': list(reversed(changed)) + [{'name': '신메뉴'}]}, headers=HEADERS)
+    assert response.status_code == 200
+    saved_categories = response.json()['categories']
+    new_category = saved_categories[-1]
+    assert client.post('/api/v1/store-admin/categories', json={'items': [new_category]}, headers=HEADERS).status_code == 409
+    assert client.get('/api/v1/categories').json() == saved_categories
+
+    image = io.BytesIO()
+    Image.new('RGB', (1600, 1000), 'brown').save(image, format='PNG')
+    upload = client.post('/api/v1/store-admin/photos', content=image.getvalue(), headers=HEADERS)
+    assert upload.status_code == 201
+    url = upload.json()['url']
+    photo = client.get(url)
+    assert photo.status_code == 200 and photo.headers['content-type'] == 'image/jpeg'
+    normalized = Image.open(io.BytesIO(photo.content))
+    assert normalized.size == (1200, 750) and not normalized.getexif()
+    assert client.post('/api/v1/store-admin/photos', content=b'<svg/>', headers=HEADERS).status_code == 422
+    assert client.post('/api/v1/store-admin/photos', content=b'x' * (5 * 1024 * 1024 + 1), headers=HEADERS).status_code == 413
+    menu = {'name': '업로드 상품', 'category_id': new_category['id'], 'pos_slot': 0, 'price': 2000, 'photo': url}
+    assert client.post('/api/v1/store-admin/menu', json=menu, headers=HEADERS).status_code == 200
+    assert client.post('/api/v1/store-admin/categories', json={'items': saved_categories[:-1]}, headers=HEADERS).status_code == 409
+
+    client.cookies.clear()
+    register(client, email='photo-other@example.com')
+    client.post('/api/v1/stores', json={'name': '다른 사진 매장'}, headers=HEADERS)
+    assert client.get(url).status_code == 404
+    assert client.post('/api/v1/store-admin/menu', json={**menu, 'category_id': categories[0]['id'], 'pos_slot': 24}, headers=HEADERS).status_code == 422
+    assert not any(c['name'] == '신메뉴' for c in client.get('/api/v1/categories').json())
+
+    client.cookies.clear()
+    client.cookies.set(auth.COOKIE_NAME, owner_token)
+    base_product = client.get('/api/v1/products').json()[0]
+    assert client.post('/api/v1/store-admin/menu', json={
+        'product_id': base_product['id'], 'category_id': base_product['category_id'],
+        'pos_slot': base_product['pos_slot'], 'name': base_product['name'],
+        'price': base_product['price'], 'photo': url,
+    }, headers=HEADERS).status_code == 200

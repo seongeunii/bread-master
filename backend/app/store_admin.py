@@ -30,7 +30,7 @@ class MenuInput(BaseModel):
     pos_slot: int = Field(ge=0, le=499)
     name: str = Field(min_length=1, max_length=80)
     price: int = Field(ge=0, le=100000000)
-    photo: Optional[str] = Field(default=None, max_length=2048, pattern=r'^https://[^\s]+$')
+    photo: Optional[str] = Field(default=None, max_length=2048, pattern=r'^(https://[^\s]+|/api/v1/store-admin/photos/[a-f0-9]{32})$')
     name_group: str = Field(default='', max_length=60)
 
 
@@ -54,6 +54,10 @@ def save_menu(body: MenuInput, scope=Depends(require_admin)):
                and p['pos_slot'] == body.pos_slot for p in layout['products']):
             raise HTTPException(409, '이미 메뉴가 등록된 칸이에요.')
         photo = body.photo if body.photo is not None else existing['illustration'] if existing else ''
+        if photo.startswith('/api/v1/store-admin/photos/'):
+            photo_id = photo.rsplit('/', 1)[-1]
+            if not db.execute('SELECT 1 FROM store_photos WHERE id=? AND store_id=?', (photo_id, scope[1])).fetchone():
+                raise HTTPException(422, '이 매장에 업로드한 사진을 선택해 주세요.')
         product_id = body.product_id
         if product_id is None:
             product_id = db.execute('SELECT COALESCE(MAX(product_id), 999999999)+1 FROM store_menus WHERE product_id>=1000000000').fetchone()[0]

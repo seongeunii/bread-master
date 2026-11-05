@@ -41,6 +41,10 @@ def catalog(db, store_id=None):
     layout = base_catalog(db)
     if store_id is None:
         return layout
+    import json
+    saved = db.execute('SELECT items FROM store_categories WHERE store_id=?', (store_id,)).fetchone()
+    if saved:
+        layout = {**layout, 'categories': json.loads(saved['items'])}
     products = {p['id']: p for p in layout['products']}
     categories = {c['id']: c['name'] for c in layout['categories']}
     for row in db.execute('SELECT * FROM store_menus WHERE store_id=?', (store_id,)):
@@ -54,4 +58,6 @@ def catalog(db, store_id=None):
             'description': '매장에서 등록한 POS 메뉴입니다.',
             'image_status': 'reference' if menu['illustration'] else 'missing',
         }
+    for product in products.values():
+        product['category_name'] = categories.get(product['category_id'], product['category_name'])
     return {**layout, 'products': list(products.values()), 'basis': 'store'}
