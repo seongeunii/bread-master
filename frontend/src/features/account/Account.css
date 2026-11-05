@@ -37,3 +37,9 @@
 .import-row { display: flex; gap: 12px; flex-wrap: wrap; padding: 12px !important; border: 1px solid #d9c9b4 !important; margin: 12px 0; }
 .import-row label { display: grid; flex: 1; min-width: 140px; }
 .import-row input, .import-row select { min-width: 0; padding: 8px; border: 1px solid #d9c9b4; }
+
+.ocr-image { position: relative; max-width: 700px; margin: 16px 0; }
+.ocr-image > img { display: block; width: 100%; }
+.ocr-image > span { position: absolute; border: 2px solid #ad592b; pointer-events: none; }
+.ocr-image i { position: absolute; border: 1px solid #ad592b; color: #fff; text-shadow: 0 1px 2px #000; font-style: normal; font-size: 12px; padding: 2px; }
+.ocr-panel > fieldset { border: 0; padding: 0; }

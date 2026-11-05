@@ -387,5 +387,54 @@ def test_file_import_preview_and_atomic_retry(client):
     assert client.post(path, json=payload, headers=HEADERS).status_code == 200
     assert client.post(path, json=payload, headers=HEADERS).status_code == 200
     assert len(client.get('/api/v1/products').json()) == before + 1
+    import json
+    from app.store_import import ImportInput
+    legacy = ImportInput(**payload).model_dump(exclude={'request_id'})
+    for entry in legacy['items']:
+        entry.pop('source_url')
+    old_hash = hashlib.sha256(json.dumps(legacy, ensure_ascii=False, separators=(',', ':')).encode()).hexdigest()
+    with db.connect() as connection:
+        connection.execute('UPDATE store_imports SET payload_hash=? WHERE request_id=?', (old_hash, payload['request_id']))
+    assert client.post(path, json=payload, headers=HEADERS).status_code == 200
     payload['items'] = [{**item, 'name': '변경 요청'}]
     assert client.post(path, json=payload, headers=HEADERS).status_code == 409
+
+
+@pytest.mark.parametrize('url', [
+    'http://www.paris.co.kr/product/bread/', 'https://localhost/product/bread/',
+    'https://www.paris.co.kr.evil.test/product/bread/', 'https://user@www.paris.co.kr/product/bread/',
+    'https://www.paris.co.kr:444/product/bread/', 'https://www.paris.co.kr/products/',
+    'https://www.paris.co.kr/product/../secret', 'https://www.paris.co.kr/product/bread/?redirect=localhost',
+    'https://[', 'https://www.paris.co.kr/product/%2fsecret/',
+])
+def test_product_link_rejects_unsupported_destinations(url):
+    from app.store_link import supported_url
+    from fastapi import HTTPException
+    with pytest.raises(HTTPException) as error:
+        supported_url(url)
+    assert error.value.status_code == 422
+
+
+def test_product_link_preview_requires_admin_and_leaves_prices_for_confirmation(client, monkeypatch):
+    from app import store_link
+    url = 'https://www.paris.co.kr/product/bread/'
+    html = '<meta property="og:image" content="https://example.com/bread.jpg"><h1 class="product-name">빵 &amp; 버터</h1>'
+    result = store_link.parse_product(html, url)
+    assert result == {'name': '빵 & 버터', 'photo': 'https://example.com/bread.jpg', 'source_url': url}
+    async def fetch(_):
+        return result
+    monkeypatch.setattr(store_link, 'fetch_product', fetch)
+    path = '/api/v1/store-admin/import/link'
+    assert client.post(path, json={'url': url}, headers=HEADERS).status_code == 403
+    register(client, email='link-owner@example.com')
+    client.post('/api/v1/stores', json={'name': '링크 매장'}, headers=HEADERS)
+    before = len(client.get('/api/v1/products').json())
+    response = client.post(path, json={'url': url}, headers=HEADERS)
+    assert response.status_code == 200 and response.json() == result
+    assert len(client.get('/api/v1/products').json()) == before
+    saved = client.post('/api/v1/store-admin/menu', json={
+        'name': result['name'], 'photo': result['photo'], 'source_url': result['source_url'],
+        'price': 1900, 'category_id': 1, 'pos_slot': 24,
+    }, headers=HEADERS)
+    assert saved.status_code == 200
+    assert next(item for item in saved.json()['products'] if item['name'] == result['name'])['source_url'] == url

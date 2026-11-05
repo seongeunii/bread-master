@@ -76,7 +76,7 @@ def initialize():
         CREATE TABLE IF NOT EXISTS store_menus(
             store_id TEXT NOT NULL REFERENCES stores(id), product_id INTEGER NOT NULL,
             category_id INTEGER NOT NULL, pos_slot INTEGER NOT NULL, name TEXT NOT NULL,
-            price INTEGER NOT NULL, illustration TEXT NOT NULL, name_group TEXT,
+            price INTEGER NOT NULL, illustration TEXT NOT NULL, name_group TEXT, source_url TEXT,
             PRIMARY KEY(store_id, product_id), UNIQUE(store_id, category_id, pos_slot));
         CREATE TABLE IF NOT EXISTS store_exercises(
             id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -86,7 +86,7 @@ def initialize():
 
         ''')
         # 기존 개발 DB를 삭제하지 않고 컬럼을 추가합니다.
-        for table, column, definition in [('products', 'name_group', 'TEXT'), ('questions', 'correct_answer_id', 'INTEGER'), ('products', 'source_url', 'TEXT'), ('products', 'price_known', 'INTEGER NOT NULL DEFAULT 1')]:
+        for table, column, definition in [('store_menus', 'source_url', 'TEXT'), ('products', 'name_group', 'TEXT'), ('questions', 'correct_answer_id', 'INTEGER'), ('products', 'source_url', 'TEXT'), ('products', 'price_known', 'INTEGER NOT NULL DEFAULT 1')]:
             columns = {row['name'] for row in db.execute(f'PRAGMA table_info({table})')}
             if column not in columns:
                 db.execute(f'ALTER TABLE {table} ADD COLUMN {column} {definition}')

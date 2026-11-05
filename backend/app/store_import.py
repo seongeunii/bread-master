@@ -3,6 +3,7 @@ import csv
 import hashlib
 import io
 import itertools
+import json
 import zipfile
 
 from fastapi import Depends, HTTPException, Request
@@ -67,12 +68,19 @@ def commit(body: ImportInput, scope=Depends(require_admin)):
     if any(item.product_id is not None for item in body.items):
         raise HTTPException(422, '일괄 등록은 새 메뉴에 사용해 주세요.')
     payload = hashlib.sha256(body.model_dump_json(exclude={'request_id'}).encode()).hexdigest()
+    accepted_hashes = {payload}
+    if all(item.source_url is None for item in body.items):
+        # Preserve retries created before source attribution was added to MenuInput.
+        legacy = body.model_dump(exclude={'request_id'})
+        for item in legacy['items']:
+            item.pop('source_url')
+        accepted_hashes.add(hashlib.sha256(json.dumps(legacy, ensure_ascii=False, separators=(',', ':')).encode()).hexdigest())
     with connect() as db:
         db.execute('BEGIN IMMEDIATE')
         previous = db.execute('SELECT payload_hash FROM store_imports WHERE store_id=? AND request_id=?',
                               (scope[1], body.request_id)).fetchone()
         if previous:
-            if previous['payload_hash'] != payload:
+            if previous['payload_hash'] not in accepted_hashes:
                 raise HTTPException(409, '이미 사용한 등록 요청이에요. 파일을 다시 선택해 주세요.')
             return catalog(db, scope[1])
         for index, item in enumerate(body.items, 1):
