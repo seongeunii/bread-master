@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { api } from '../../lib/api'
 
 export type Account = { id: string; email: string; display_name: string; created_at: string }
-type Session = { enabled: boolean; user: Account | null }
+type Session = { enabled: boolean; user: Account | null; store_role?: 'admin' | 'worker' | null }
 
 export function useAccount() {
   const [session, setSession] = useState<Session | null>(null)
@@ -25,7 +25,10 @@ export function useAccount() {
       .finally(() => { if (!controller.signal.aborted) setLoading(false) })
     return () => controller.abort()
   }, [])
-  const signedIn = (user: Account) => setSession({ enabled: true, user })
-  const signedOut = () => setSession(previous => previous ? { ...previous, user: null } : previous)
+  const signedIn = (user: Account) => {
+    setSession({ enabled: true, user })
+    void refresh()
+  }
+  const signedOut = () => setSession(previous => previous ? { ...previous, user: null, store_role: null } : previous)
   return { session, loading, error, refresh, signedIn, signedOut }
 }

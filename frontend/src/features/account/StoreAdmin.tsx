@@ -62,8 +62,7 @@ function WorkerProgress() {
   </section>
 }
 
-export function StoreAdmin() {
-  const [tab, setTab] = useState<'menu' | 'progress'>('menu')
+export function StoreAdmin({ tab = 'menu' }: { tab?: 'menu' | 'progress' }) {
   const [layout, setLayout] = useState<Layout>()
   const [category, setCategory] = useState(0)
   const [page, setPage] = useState(0)
@@ -113,10 +112,6 @@ export function StoreAdmin() {
   }
 
   return <section aria-label="매장 관리">
-    <div className="account-tabs" aria-label="관리 메뉴">
-      <button aria-pressed={tab === 'menu'} onClick={() => setTab('menu')}>POS 메뉴 관리</button>
-      <button aria-pressed={tab === 'progress'} onClick={() => setTab('progress')}>근무자 학습 현황</button>
-    </div>
     {tab === 'progress' ? <WorkerProgress/> : <>
       {error && <p role="alert" className="account-error">{error}</p>}
       {notice && <p role="status">{notice}</p>}
