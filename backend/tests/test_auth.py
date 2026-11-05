@@ -387,6 +387,15 @@ def test_file_import_preview_and_atomic_retry(client):
     assert client.post(path, json=payload, headers=HEADERS).status_code == 200
     assert client.post(path, json=payload, headers=HEADERS).status_code == 200
     assert len(client.get('/api/v1/products').json()) == before + 1
+    import json
+    from app.store_import import ImportInput
+    legacy = ImportInput(**payload).model_dump(exclude={'request_id'})
+    for entry in legacy['items']:
+        entry.pop('source_url')
+    old_hash = hashlib.sha256(json.dumps(legacy, ensure_ascii=False, separators=(',', ':')).encode()).hexdigest()
+    with db.connect() as connection:
+        connection.execute('UPDATE store_imports SET payload_hash=? WHERE request_id=?', (old_hash, payload['request_id']))
+    assert client.post(path, json=payload, headers=HEADERS).status_code == 200
     payload['items'] = [{**item, 'name': '변경 요청'}]
     assert client.post(path, json=payload, headers=HEADERS).status_code == 409
 
