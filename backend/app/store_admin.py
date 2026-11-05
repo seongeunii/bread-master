@@ -32,6 +32,7 @@ class MenuInput(BaseModel):
     price: int = Field(ge=0, le=100000000)
     photo: Optional[str] = Field(default=None, max_length=2048, pattern=r'^(https://[^\s]+|/api/v1/store-admin/photos/[a-f0-9]{32})$')
     source_url: Optional[str] = Field(default=None, max_length=2048, pattern=r'^https://www\.paris\.co\.kr/product/[^\s]+$')
+    # Legacy clients may still submit this field; group changes use quiz-groups APIs.
     name_group: str = Field(default='', max_length=60)
 
 
@@ -72,7 +73,7 @@ def save_menu_in_db(db, body, scope):
         ON CONFLICT(store_id,product_id) DO UPDATE SET category_id=excluded.category_id,
         pos_slot=excluded.pos_slot,name=excluded.name,price=excluded.price,
         illustration=excluded.illustration,name_group=excluded.name_group,source_url=excluded.source_url
-    """, (scope[1], product_id, body.category_id, body.pos_slot, body.name, body.price, photo, body.name_group or None, body.source_url or (existing.get('source_url') if existing else None)))
+    """, (scope[1], product_id, body.category_id, body.pos_slot, body.name, body.price, photo, existing.get('name_group') if existing else None, body.source_url or (existing.get('source_url') if existing else None)))
     return catalog(db, scope[1])
 
 
