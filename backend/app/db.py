@@ -58,6 +58,14 @@ def initialize():
         CREATE INDEX IF NOT EXISTS auth_sessions_expiry ON auth_sessions(expires_at);
         CREATE TABLE IF NOT EXISTS auth_attempts(
             key_hash TEXT PRIMARY KEY, attempts INTEGER NOT NULL, expires_at INTEGER NOT NULL);
+        CREATE TABLE IF NOT EXISTS stores(
+            id TEXT PRIMARY KEY, name TEXT NOT NULL, invite_code TEXT NOT NULL UNIQUE);
+        CREATE TABLE IF NOT EXISTS store_memberships(
+            user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+            store_id TEXT NOT NULL REFERENCES stores(id),
+            role TEXT NOT NULL CHECK(role IN ('admin', 'worker')),
+            status TEXT NOT NULL CHECK(status IN ('active', 'pending')));
+        CREATE INDEX IF NOT EXISTS store_memberships_requests ON store_memberships(store_id, status);
         ''')
         # 기존 개발 DB를 삭제하지 않고 컬럼을 추가합니다.
         for table, column, definition in [('products', 'name_group', 'TEXT'), ('questions', 'correct_answer_id', 'INTEGER'), ('products', 'source_url', 'TEXT'), ('products', 'price_known', 'INTEGER NOT NULL DEFAULT 1')]:

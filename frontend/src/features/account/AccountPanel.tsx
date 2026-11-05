@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { api } from '../../lib/api'
 import type { Account } from './useAccount'
+import { StorePanel } from './StorePanel'
 import './Account.css'
 
 type Props = {
@@ -62,8 +63,9 @@ export function AccountPanel({ user, enabled, loading, connectionError, onRetry,
       : user ? <>
         <h2 id="account-title">{user.display_name}님의 계정</h2>
         <p className="account-intro">오늘도 빵 하나씩, 차근차근 익혀 봐요.</p>
-        <dl className="account-details"><dt>이름</dt><dd>{user.display_name}</dd><dt>이메일</dt><dd>{user.email}</dd><dt>근무 매장</dt><dd>아직 연결된 매장이 없어요.</dd></dl>
-        <p className="account-note">매장 생성·참여와 개인 학습 기록은 다음 단계에서 제공할 예정이에요. 현재 연습 결과는 계정에 연결되지 않아요.</p>
+        <dl className="account-details"><dt>이름</dt><dd>{user.display_name}</dd><dt>이메일</dt><dd>{user.email}</dd></dl>
+        <StorePanel key={user.id}/>
+        <p className="account-note">현재 연습 결과는 계정에 저장되지 않아요.</p>
         {error && <p role="alert" className="account-error">{error}</p>}
         <div className="account-actions"><button className="primary" onClick={onPractice}>연습하러 가기</button><button className="account-secondary" disabled={busy} onClick={() => void logout()}>{busy ? '로그아웃 중…' : '로그아웃'}</button></div>
       </> : <>
@@ -80,7 +82,7 @@ export function AccountPanel({ user, enabled, loading, connectionError, onRetry,
             <button className="primary account-submit" type="submit">{busy ? '확인하고 있어요…' : mode === 'login' ? '로그인' : '가입하고 시작하기'}</button>
           </fieldset>
         </form>
-        <p className="account-note">현재 연습 결과는 계정에 저장되지 않아요. 근무 매장과 내 학습 기록은 다음 단계에서 연결할 예정이에요.</p>
+        <p className="account-note">현재 연습 결과는 계정에 저장되지 않아요. 가입 후 근무 매장에 참여할 수 있어요.</p>
       </>}
   </section>
 }
