@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { api } from '../../lib/api'
+import { MenuImport } from './MenuImport'
 import { CategoryManager } from './CategoryManager'
 import type { CategoryDraft } from './CategoryManager'
 import type { Category } from '../../lib/api'
@@ -154,6 +155,7 @@ export function StoreAdmin({ tab = 'menu' }: { tab?: 'menu' | 'progress' }) {
     {tab === 'progress' ? <WorkerProgress/> : <>
       {error && <p role="alert" className="account-error">{error}</p>}
       {notice && <p role="status">{notice}</p>}
+      {layout && <MenuImport categories={layout.categories} onSaved={async () => { setLayout(await api<Layout>('/store-admin/menu')) }}/>}
       {layout && <CategoryManager key={JSON.stringify(layout.categories)} categories={layout.categories} occupied={new Set(layout.products.map(product => product.category_id))} busy={busy} onSave={items => void saveCategories(items)}/>}
       {layout ? <PosTerminal categories={layout.categories} products={layout.products} category={category}
         page={page} onCategory={id => { setCategory(id); setPage(0) }} onPage={setPage}

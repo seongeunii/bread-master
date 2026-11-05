@@ -355,3 +355,37 @@ def test_store_categories_and_uploaded_photos_are_scoped(client):
         'pos_slot': base_product['pos_slot'], 'name': base_product['name'],
         'price': base_product['price'], 'photo': url,
     }, headers=HEADERS).status_code == 200
+
+
+def test_file_import_preview_and_atomic_retry(client):
+    import io
+    import uuid
+    from openpyxl import Workbook
+
+    register(client, email='import-owner@example.com')
+    client.post('/api/v1/stores', json={'name': '등록 매장'}, headers=HEADERS)
+    headers = ['상품명', '가격', '카테고리', '칸번호', '사진주소']
+    workbook = Workbook()
+    workbook.active.append(headers)
+    workbook.active.append(['등록 빵', 1900, '페이스트리', 24, ''])
+    data = io.BytesIO()
+    workbook.save(data)
+    preview = client.post('/api/v1/store-admin/import/preview', content=data.getvalue(), headers=HEADERS)
+    assert preview.status_code == 200
+    assert preview.json()['rows'][0]['상품명'] == '등록 빵'
+    csv = '상품명,가격,카테고리,칸번호,사진주소\n등록 빵,1900,페이스트리,24,\n'
+    assert client.post('/api/v1/store-admin/import/preview', content=csv.encode('utf-8-sig'), headers=HEADERS).status_code == 200
+    assert client.post('/api/v1/store-admin/import/preview', content=b'bad', headers=HEADERS).status_code == 422
+
+    item = {'name': '등록 빵', 'price': 1900, 'category_id': 1, 'pos_slot': 23}
+    path = '/api/v1/store-admin/import/save'
+    before = len(client.get('/api/v1/products').json())
+    payload = {'request_id': str(uuid.uuid4()), 'items': [item, {**item, 'name': '중복 칸'}]}
+    assert client.post(path, json=payload, headers=HEADERS).status_code == 409
+    assert len(client.get('/api/v1/products').json()) == before
+    payload['items'] = [item]
+    assert client.post(path, json=payload, headers=HEADERS).status_code == 200
+    assert client.post(path, json=payload, headers=HEADERS).status_code == 200
+    assert len(client.get('/api/v1/products').json()) == before + 1
+    payload['items'] = [{**item, 'name': '변경 요청'}]
+    assert client.post(path, json=payload, headers=HEADERS).status_code == 409

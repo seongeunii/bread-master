@@ -100,6 +100,6 @@ install_limits(app)
 install_auth(app)
 app.include_router(stores_router)
 from .store_admin import router as store_admin_router
-from . import store_catalog
+from . import store_catalog, store_import
 app.include_router(store_admin_router)
 install_web(app)

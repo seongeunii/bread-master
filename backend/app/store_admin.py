@@ -44,31 +44,35 @@ def menus(scope=Depends(require_admin)):
 def save_menu(body: MenuInput, scope=Depends(require_admin)):
     with connect() as db:
         db.execute('BEGIN IMMEDIATE')
-        layout = catalog(db, scope[1])
-        if body.category_id not in {c['id'] for c in layout['categories']}:
-            raise HTTPException(422, '매장 POS 카테고리를 선택해 주세요.')
-        existing = next((p for p in layout['products'] if p['id'] == body.product_id), None)
-        if body.product_id is not None and not existing:
-            raise HTTPException(404, '메뉴를 찾을 수 없어요.')
-        if any(p['id'] != body.product_id and p['category_id'] == body.category_id
-               and p['pos_slot'] == body.pos_slot for p in layout['products']):
-            raise HTTPException(409, '이미 메뉴가 등록된 칸이에요.')
-        photo = body.photo if body.photo is not None else existing['illustration'] if existing else ''
-        if photo.startswith('/api/v1/store-admin/photos/'):
-            photo_id = photo.rsplit('/', 1)[-1]
-            if not db.execute('SELECT 1 FROM store_photos WHERE id=? AND store_id=?', (photo_id, scope[1])).fetchone():
-                raise HTTPException(422, '이 매장에 업로드한 사진을 선택해 주세요.')
-        product_id = body.product_id
-        if product_id is None:
-            product_id = db.execute('SELECT COALESCE(MAX(product_id), 999999999)+1 FROM store_menus WHERE product_id>=1000000000').fetchone()[0]
-        db.execute("""
-            INSERT INTO store_menus(store_id,product_id,category_id,pos_slot,name,price,illustration,name_group)
-            VALUES(?,?,?,?,?,?,?,?)
-            ON CONFLICT(store_id,product_id) DO UPDATE SET category_id=excluded.category_id,
-            pos_slot=excluded.pos_slot,name=excluded.name,price=excluded.price,
-            illustration=excluded.illustration,name_group=excluded.name_group
-        """, (scope[1], product_id, body.category_id, body.pos_slot, body.name, body.price, photo, body.name_group or None))
-        return catalog(db, scope[1])
+        return save_menu_in_db(db, body, scope)
+
+
+def save_menu_in_db(db, body, scope):
+    layout = catalog(db, scope[1])
+    if body.category_id not in {c['id'] for c in layout['categories']}:
+        raise HTTPException(422, '매장 POS 카테고리를 선택해 주세요.')
+    existing = next((p for p in layout['products'] if p['id'] == body.product_id), None)
+    if body.product_id is not None and not existing:
+        raise HTTPException(404, '메뉴를 찾을 수 없어요.')
+    if any(p['id'] != body.product_id and p['category_id'] == body.category_id
+           and p['pos_slot'] == body.pos_slot for p in layout['products']):
+        raise HTTPException(409, '이미 메뉴가 등록된 칸이에요.')
+    photo = body.photo if body.photo is not None else existing['illustration'] if existing else ''
+    if photo.startswith('/api/v1/store-admin/photos/'):
+        photo_id = photo.rsplit('/', 1)[-1]
+        if not db.execute('SELECT 1 FROM store_photos WHERE id=? AND store_id=?', (photo_id, scope[1])).fetchone():
+            raise HTTPException(422, '이 매장에 업로드한 사진을 선택해 주세요.')
+    product_id = body.product_id
+    if product_id is None:
+        product_id = db.execute('SELECT COALESCE(MAX(product_id), 999999999)+1 FROM store_menus WHERE product_id>=1000000000').fetchone()[0]
+    db.execute("""
+        INSERT INTO store_menus(store_id,product_id,category_id,pos_slot,name,price,illustration,name_group)
+        VALUES(?,?,?,?,?,?,?,?)
+        ON CONFLICT(store_id,product_id) DO UPDATE SET category_id=excluded.category_id,
+        pos_slot=excluded.pos_slot,name=excluded.name,price=excluded.price,
+        illustration=excluded.illustration,name_group=excluded.name_group
+    """, (scope[1], product_id, body.category_id, body.pos_slot, body.name, body.price, photo, body.name_group or None))
+    return catalog(db, scope[1])
 
 
 @router.get('/progress')
