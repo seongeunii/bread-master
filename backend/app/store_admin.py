@@ -31,6 +31,7 @@ class MenuInput(BaseModel):
     name: str = Field(min_length=1, max_length=80)
     price: int = Field(ge=0, le=100000000)
     photo: Optional[str] = Field(default=None, max_length=2048, pattern=r'^(https://[^\s]+|/api/v1/store-admin/photos/[a-f0-9]{32})$')
+    source_url: Optional[str] = Field(default=None, max_length=2048, pattern=r'^https://www\.paris\.co\.kr/product/[^\s]+$')
     name_group: str = Field(default='', max_length=60)
 
 
@@ -66,12 +67,12 @@ def save_menu_in_db(db, body, scope):
     if product_id is None:
         product_id = db.execute('SELECT COALESCE(MAX(product_id), 999999999)+1 FROM store_menus WHERE product_id>=1000000000').fetchone()[0]
     db.execute("""
-        INSERT INTO store_menus(store_id,product_id,category_id,pos_slot,name,price,illustration,name_group)
-        VALUES(?,?,?,?,?,?,?,?)
+        INSERT INTO store_menus(store_id,product_id,category_id,pos_slot,name,price,illustration,name_group,source_url)
+        VALUES(?,?,?,?,?,?,?,?,?)
         ON CONFLICT(store_id,product_id) DO UPDATE SET category_id=excluded.category_id,
         pos_slot=excluded.pos_slot,name=excluded.name,price=excluded.price,
-        illustration=excluded.illustration,name_group=excluded.name_group
-    """, (scope[1], product_id, body.category_id, body.pos_slot, body.name, body.price, photo, body.name_group or None))
+        illustration=excluded.illustration,name_group=excluded.name_group,source_url=excluded.source_url
+    """, (scope[1], product_id, body.category_id, body.pos_slot, body.name, body.price, photo, body.name_group or None, body.source_url or (existing.get('source_url') if existing else None)))
     return catalog(db, scope[1])
 
 
