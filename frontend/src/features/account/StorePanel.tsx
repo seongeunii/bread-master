@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
+import { MyProgress } from './StoreAdmin'
 import { api } from '../../lib/api'
 
 type StoreRequest = { user_id: string; display_name: string; email: string }
@@ -12,7 +13,7 @@ type Store = {
   requests?: StoreRequest[]
 }
 
-export function StorePanel() {
+export function StorePanel({ onManage }: { onManage: () => void }) {
   const [store, setStore] = useState<Store | null | undefined>(undefined)
   const [mode, setMode] = useState<'join' | 'create'>('join')
   const [value, setValue] = useState('')
@@ -81,6 +82,7 @@ export function StorePanel() {
         })}>신청 취소</button>
       </>}
       {store.role === 'admin' && <>
+        <button className="primary" onClick={onManage}>매장 관리</button>
         <p>초대 코드 <code>{store.invite_code}</code></p>
         <small>참여할 근무자에게 이 코드를 알려 주세요.</small>
         <h4>승인 대기 신청</h4>
@@ -100,6 +102,7 @@ export function StorePanel() {
         </li>)}</ul> : <p>대기 중인 신청이 없어요.</p>}
       </>}
       <button className="account-secondary" disabled={busy} onClick={() => void perform(refresh)}>상태 새로고침</button>
+      {store.status === 'active' && <MyProgress/>}
     </>}
   </section>
 }

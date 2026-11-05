@@ -66,6 +66,17 @@ def initialize():
             role TEXT NOT NULL CHECK(role IN ('admin', 'worker')),
             status TEXT NOT NULL CHECK(status IN ('active', 'pending')));
         CREATE INDEX IF NOT EXISTS store_memberships_requests ON store_memberships(store_id, status);
+        CREATE TABLE IF NOT EXISTS store_menus(
+            store_id TEXT NOT NULL REFERENCES stores(id), product_id INTEGER NOT NULL,
+            category_id INTEGER NOT NULL, pos_slot INTEGER NOT NULL, name TEXT NOT NULL,
+            price INTEGER NOT NULL, illustration TEXT NOT NULL, name_group TEXT,
+            PRIMARY KEY(store_id, product_id), UNIQUE(store_id, category_id, pos_slot));
+        CREATE TABLE IF NOT EXISTS store_exercises(
+            id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            store_id TEXT NOT NULL REFERENCES stores(id), mode TEXT NOT NULL, snapshot TEXT,
+            correct INTEGER, completed_at TEXT);
+        CREATE INDEX IF NOT EXISTS store_exercises_progress ON store_exercises(store_id,user_id);
+
         ''')
         # 기존 개발 DB를 삭제하지 않고 컬럼을 추가합니다.
         for table, column, definition in [('products', 'name_group', 'TEXT'), ('questions', 'correct_answer_id', 'INTEGER'), ('products', 'source_url', 'TEXT'), ('products', 'price_known', 'INTEGER NOT NULL DEFAULT 1')]:

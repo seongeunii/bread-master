@@ -13,3 +13,14 @@
 .store-requests { padding: 0; list-style: none; }
 .store-requests li { padding: 14px 0; border-bottom: 1px solid #e8ddce; overflow-wrap: anywhere; }
 .store-requests .account-actions { margin-top: 8px; }
+
+.store-menu-form fieldset { border: 0; padding: 0; min-width: 0; display: grid; gap: 10px; }
+.store-menu-form label { display: grid; gap: 4px; }
+.store-menu-form input, .store-menu-form select {
+  min-width: 0;
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #d9c9b4;
+  border-radius: 6px;
+  background: #fff;
+}

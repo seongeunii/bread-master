@@ -2,7 +2,7 @@
 from .learning import all_products
 CATEGORY_ORDER = ['휴면반죽단과자','휴면반죽기타','휴면반죽식빵','페스츄리','파이류','바게트','도우넛','선물류','날개냉장디저트','소트',
                   '완제단과자','완제기타','완제 식빵','버터케익','본사생크림쉬폰','점포생크림케익','음료','제조음료','점포샌드위치']
-def catalog(db):
+def base_catalog(db):
     pool = all_products(db)
     if not any(not p['is_sample'] for p in pool):
         # 예시 데이터만 있는 개발 DB도 사용할 수 있습니다.
@@ -36,3 +36,22 @@ def catalog(db):
         })
     return {'categories':categories,'products':products,'basis':'user-confirmed',
             'unmapped_count':len(pool)-len(used)}
+
+def catalog(db, store_id=None):
+    layout = base_catalog(db)
+    if store_id is None:
+        return layout
+    products = {p['id']: p for p in layout['products']}
+    categories = {c['id']: c['name'] for c in layout['categories']}
+    for row in db.execute('SELECT * FROM store_menus WHERE store_id=?', (store_id,)):
+        menu = dict(row)
+        menu.pop('store_id')
+        product_id = menu.pop('product_id')
+        products[product_id] = {
+            **products.get(product_id, {}), **menu, 'id': product_id,
+            'category_name': categories.get(menu['category_id'], '매장 POS'),
+            'is_sample': False, 'price_known': True, 'manual_price': False,
+            'description': '매장에서 등록한 POS 메뉴입니다.',
+            'image_status': 'reference' if menu['illustration'] else 'missing',
+        }
+    return {**layout, 'products': list(products.values()), 'basis': 'store'}

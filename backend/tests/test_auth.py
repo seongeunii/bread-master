@@ -241,3 +241,65 @@ def test_store_approval_is_limited_to_own_store(client):
     assert client.get(stores + '/mine').json()['status'] == 'active'
     assert client.post(stores + '/cancel', json={}, headers=HEADERS).status_code == 204
     assert client.get(stores + '/mine').json()['role'] == 'worker'
+
+
+def test_store_menus_and_progress_respect_membership_and_keep_original_grade(client):
+    api = '/api/v1'
+
+    def post(path, body):
+        return client.post(api + path, json=body, headers=HEADERS)
+
+    def get(path):
+        return client.get(api + path)
+
+    def switch(token):
+        client.cookies.clear()
+        client.cookies.set(auth.COOKIE_NAME, token)
+
+    register(client, email='menu-owner@example.com')
+    owner_token = client.cookies[auth.COOKIE_NAME]
+    invite = post('/stores', {'name': '메뉴 매장'}).json()['invite_code']
+    menu = {'name': '테스트 메뉴', 'category_id': 1, 'pos_slot': 19, 'price': 2200,
+            'photo': 'https://example.com/bread.jpg'}
+    response = post('/store-admin/menu', menu)
+    assert response.status_code == 200
+    item = next(p for p in response.json()['products'] if p['name'] == menu['name'])
+    assert post('/store-admin/menu', menu).status_code == 409
+
+    client.cookies.clear()
+    worker = register(client, email='menu-worker@example.com').json()
+    worker_token = client.cookies[auth.COOKIE_NAME]
+    assert post('/stores/join', {'code': invite}).status_code == 201
+    assert not any(p['id'] == item['id'] for p in get('/products').json())
+    assert get('/store-admin/my-progress').status_code == 403
+    switch(owner_token)
+    assert post(f"/stores/requests/{worker['id']}/approve", {}).status_code == 204
+
+    switch(worker_token)
+    assert post('/store-admin/menu', menu).status_code == 403
+    assert get('/store-admin/progress').status_code == 403
+    assert any(p['id'] == item['id'] for p in get('/pos-catalog').json()['products'])
+    excluded = [p['id'] for p in get('/products').json() if p['id'] != item['id']]
+    question = post('/questions', {'mode': 'category', 'exclude_ids': excluded}).json()
+    answer = f"/questions/{question['id']}/answer"
+
+    switch(owner_token)
+    assert post(answer, {'selected_id': 1, 'elapsed_ms': 200}).status_code == 404
+    assert post('/store-admin/menu', {**menu, 'product_id': item['id'], 'name': '바뀐 메뉴', 'category_id': 2}).status_code == 200
+    assert get('/store-admin/progress').json()[0]['attempts'] == 0
+
+    switch(worker_token)
+    result = post(answer, {'selected_id': 1, 'elapsed_ms': 200}).json()
+    assert result['is_correct'] and result['correct_product']['name'] == '테스트 메뉴'
+    assert post(answer, {'selected_id': 1, 'elapsed_ms': 800}).json() == result
+    assert get('/store-admin/my-progress').json()['attempts'] == 1
+
+    switch(owner_token)
+    row = get('/store-admin/progress').json()[0]
+    assert (row['attempts'], row['accuracy'], row['level']) == (1, 100, 1)
+    assert row['latest']
+    client.cookies.clear()
+    register(client, email='menu-other@example.com')
+    assert post('/stores', {'name': '다른 매장'}).status_code == 201
+    assert get('/store-admin/progress').json() == []
+    assert get(f"/products/{item['id']}").status_code == 404
