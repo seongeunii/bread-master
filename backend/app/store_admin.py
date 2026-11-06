@@ -1,12 +1,12 @@
 """POS menu edits and learning summaries for the current store."""
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field
 
 from .db import connect
 from .pos import catalog
-from .store_learning import active_scope, progress
+from .store_learning import active_scope, personal_learning, progress
 
 router = APIRouter(prefix='/api/v1/store-admin', tags=['Store management'])
 
@@ -87,3 +87,25 @@ def workers(scope=Depends(require_admin)):
 def my_progress(scope=Depends(require_member)):
     with connect() as db:
         return progress(db, scope[1], scope[0])[0]
+
+
+@router.get('/my-learning')
+def my_learning(scope=Depends(require_member), mistakes_only: bool = False,
+                offset: int = Query(0, ge=0)):
+    """Private practice history and mistake list for the signed-in member."""
+    with connect() as db:
+        attempts, has_more = personal_learning(db, scope[1], scope[0], mistakes_only, offset)
+        totals = db.execute("""SELECT mode, COUNT(*) AS attempts, SUM(correct) AS correct
+            FROM store_exercises WHERE store_id=? AND user_id=?
+            AND completed_at IS NOT NULL AND correct IS NOT NULL GROUP BY mode""",
+                            (scope[1], scope[0])).fetchall()
+    modes = {row['mode']: {'attempts': row['attempts'], 'correct': row['correct'],
+                           'accuracy': round(row['correct'] * 100 / row['attempts'], 1)}
+             for row in totals}
+    return {'attempts': attempts, 'has_more': has_more, 'by_mode': modes}
+
+
+@router.post('/my-learning/{exercise_id}/retry')
+def retry_mistake(exercise_id: str, scope=Depends(require_member)):
+    from .learning import retry_question
+    return retry_question(exercise_id, scope)

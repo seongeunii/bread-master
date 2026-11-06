@@ -63,3 +63,59 @@ def progress(db, store_id, user_id=None):
         item['level'] = 3 if item['correct'] >= 30 else 2 if item['correct'] >= 10 else 1
         result.append(item)
     return result
+
+
+def personal_learning(db, store_id, user_id, mistakes_only, offset):
+    """Return only this member's completed, scored practice attempts.
+
+    Store exercise snapshots preserve the answer result for question-based
+    quizzes. Delivery/POS orders persist their result in delivery_orders.
+    Inventory remains unscored and is intentionally excluded from mistakes.
+    """
+    rows = db.execute("""
+        SELECT e.id, e.mode, e.snapshot, e.correct, e.completed_at,
+               d.lines AS order_lines, d.result AS order_result
+        FROM store_exercises e
+        LEFT JOIN delivery_orders d ON d.id=e.id
+        WHERE e.store_id=? AND e.user_id=? AND e.completed_at IS NOT NULL
+          AND e.correct IS NOT NULL AND (?=0 OR e.correct=0)
+        ORDER BY e.completed_at DESC, e.rowid DESC LIMIT 21 OFFSET ?
+    """, (store_id, user_id, mistakes_only, offset)).fetchall()
+    attempts = []
+    for row in rows[:20]:
+        item = dict(row)
+        mode = item['mode']
+        result = None
+        product = None
+        snapshot = None
+        if item['snapshot']:
+            try:
+                snapshot = json.loads(item['snapshot'])
+                result = snapshot.get('result') if isinstance(snapshot, dict) else None
+                product = snapshot.get('product') if isinstance(snapshot, dict) else None
+            except (TypeError, ValueError):
+                pass
+        if item['order_result']:
+            try:
+                result = json.loads(item['order_result'])
+                lines = json.loads(item['order_lines'] or '[]')
+                product = {'name': ', '.join(f"{line.get('name', '상품')} {line.get('quantity', 1)}개" for line in lines)}
+            except (TypeError, ValueError):
+                result = None
+        if not result or not isinstance(result, dict):
+            continue
+        correct_product = result.get('correct_product') or product or {}
+        attempts.append({
+            'id': item['id'], 'mode': mode,
+            'product_name': correct_product.get('name', '상품'),
+            'category_name': correct_product.get('category_name'),
+            'illustration': correct_product.get('illustration'),
+            'is_correct': bool(item['correct']) if item['correct'] is not None else bool(result.get('is_correct')),
+            'elapsed_ms': result.get('elapsed_ms'),
+            'completed_at': item['completed_at'],
+            'feedback': result.get('feedback'),
+            'differences': result.get('differences', []),
+            'can_retry': not item['correct'] and isinstance(snapshot, dict)
+                         and bool(snapshot.get('question', {}).get('options')),
+        })
+    return attempts, len(rows) > 20

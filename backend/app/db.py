@@ -94,6 +94,18 @@ def initialize():
             store_id TEXT NOT NULL REFERENCES stores(id), mode TEXT NOT NULL, snapshot TEXT,
             correct INTEGER, completed_at TEXT);
         CREATE INDEX IF NOT EXISTS store_exercises_progress ON store_exercises(store_id,user_id);
+        CREATE TABLE IF NOT EXISTS assessments(
+            id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            store_id TEXT NOT NULL REFERENCES stores(id), policy_version TEXT NOT NULL,
+            started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, submitted_at TEXT,
+            result TEXT);
+        CREATE UNIQUE INDEX IF NOT EXISTS assessments_active
+            ON assessments(store_id,user_id) WHERE submitted_at IS NULL;
+        CREATE INDEX IF NOT EXISTS assessments_history ON assessments(store_id,user_id,submitted_at);
+        CREATE TABLE IF NOT EXISTS assessment_questions(
+            id TEXT PRIMARY KEY, assessment_id TEXT NOT NULL REFERENCES assessments(id) ON DELETE CASCADE,
+            position INTEGER NOT NULL, question TEXT NOT NULL, correct_id INTEGER NOT NULL,
+            selected_id INTEGER, UNIQUE(assessment_id,position));
 
         ''')
         # 기존 개발 DB를 삭제하지 않고 컬럼을 추가합니다.

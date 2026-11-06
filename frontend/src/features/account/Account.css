@@ -43,3 +43,12 @@
 .ocr-image > span { position: absolute; border: 2px solid #ad592b; pointer-events: none; }
 .ocr-image i { position: absolute; border: 1px solid #ad592b; color: #fff; text-shadow: 0 1px 2px #000; font-style: normal; font-size: 12px; padding: 2px; }
 .ocr-panel > fieldset { border: 0; padding: 0; }
+
+.history-art { width: 48px; flex: 0 0 48px; }
+.history-art img, .history-art svg { width: 100%; height: 42px; object-fit: contain; }
+.personal-learning .picture-choice svg { height: 75px; }
+.personal-learning .picture-choice { padding: 8px; min-width: 0; }
+.personal-learning .question-art { max-width: 110px; }
+
+.personal-learning{margin-top:16px;padding-top:14px;border-top:1px solid #dfd1bc}.personal-learning h3{font-size:15px;color:#493323}.personal-learning h4{margin:18px 0 8px;font-size:13px;color:#493323}.personal-learning>p{margin:6px 0 10px}.personal-mode-stats{display:flex;flex-wrap:wrap;gap:6px}.personal-mode-stats span{padding:5px 8px;border-radius:999px;background:#fffdf8;color:#60402a;font-size:11px}.personal-mistakes{list-style:none;padding:0;margin:0}.personal-mistakes li{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid #e6dac9}.personal-mistakes img{width:48px;height:42px;object-fit:contain;border-radius:6px;background:#fffdf8}.personal-mistakes span{min-width:0}.personal-mistakes strong,.personal-mistakes small{display:block;overflow-wrap:anywhere}.personal-mistakes small{font-size:10px}
+.local-test-accounts{margin-top:20px;padding:14px;border:1px dashed #cbb69c;border-radius:10px;background:#f8f2e8;font-size:12px;line-height:1.7;color:#60402a}.local-test-accounts>strong{font-size:13px}.local-test-accounts>p{margin:4px 0 10px;color:#806d5c}.local-test-accounts>div{display:grid;grid-template-columns:52px minmax(0,1fr);gap:3px 8px;padding:8px 0;border-top:1px solid #e8ddce}.local-test-accounts>div span{grid-row:span 2;font-weight:700}.local-test-accounts code{overflow-wrap:anywhere;font:inherit}
