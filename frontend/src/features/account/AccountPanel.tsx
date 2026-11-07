@@ -83,6 +83,12 @@ export function AccountPanel({ user, enabled, loading, connectionError, onRetry,
             <button className="primary account-submit" type="submit">{busy ? '확인하고 있어요…' : mode === 'login' ? '로그인' : '가입하고 시작하기'}</button>
           </fieldset>
         </form>
+        {mode === 'login' && import.meta.env.DEV && <aside className="local-test-accounts" aria-label="로컬 테스트 계정">
+          <strong>로컬 테스트 계정</strong>
+          <p>현재 로컬에서만 사용할 수 있는 예시 계정이에요.</p>
+          <div><span>점주</span><code>owner@breadmaster.demo</code><code>BreadMaster!2026</code></div>
+          <div><span>근무자</span><code>staff@breadmaster.demo</code><code>BreadMaster!2026</code></div>
+        </aside>}
         <p className="account-note">매장 참여가 승인되면 내 학습 현황을 확인할 수 있어요. 가입 후 근무 매장에 참여할 수 있어요.</p>
       </>}
   </section>

@@ -1,0 +1,8 @@
+.assessment .practice-panel { margin: 16px 0; }
+.assessment-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+.assessment-results { list-style: none; padding: 0; }
+.assessment-results > li { padding: 12px; margin: 8px 0; background: #fffdf8; border: 1px solid #e8ddce; border-radius: 10px; }
+.assessment-results > li > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; }
+.assessment-results ul { display: flex; flex-wrap: wrap; gap: 4px 16px; padding: 0; list-style: none; font-size: 13px; }
+.assessment .choices, .personal-learning .choices { margin: 12px 0; }
+.assessment .picture-choice img, .personal-learning .picture-choice img { width: 100%; height: 120px; object-fit: contain; }
