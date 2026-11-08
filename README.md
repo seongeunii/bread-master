@@ -89,7 +89,7 @@
 
 ## 공개 데모 배포 준비
 
-Render 무료 Docker 웹 서비스용 설정을 추가했습니다. 배포 계정 연결 및 실제 공개 URL 확인은 아직 필요합니다. [가입·배포 안내](docs/deployment.md)를 참고하세요. 성공한 공개 URL은 실제 배포 확인 후 반영합니다.
+Render 무료 Docker 웹 서비스용 설정을 추가했습니다. 공개 주소와 핵심 체험 화면의 외부 검증은 [이슈 #9](https://github.com/seongeunii/bread-master/issues/9)에서 추적합니다. [배포 및 접속 확인 안내](docs/deployment.md)를 참고하세요.
 
 ## 로컬 실행
 
