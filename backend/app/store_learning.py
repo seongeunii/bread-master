@@ -11,16 +11,17 @@ def active_scope(request: Request):
     if not account:
         return None
     from .db import connect
+    from .workspaces import current_workspace
     with connect() as db:
-        row = db.execute(
-            "SELECT store_id, role FROM store_memberships WHERE user_id=? AND status='active'",
-            (account['id'],),
-        ).fetchone()
-    if not row:
-        return None
+        space = current_workspace(db, request, account['id'])
+    if not space:
+        raise HTTPException(409, '학습할 공간을 선택해 주세요.')
+    expected = request.headers.get('X-Bread-Workspace')
+    if expected is not None and expected != space['id']:
+        raise HTTPException(409, '사용 공간이 변경됐어요. 화면을 새로고침해 주세요.')
     if request.method == 'POST':
         protect_write(request)
-    return (account['id'], row['store_id'], row['role'])
+    return (account['id'], space['id'], space['role'])
 
 
 def remember(db, exercise_id, scope, mode, snapshot=None):
@@ -56,6 +57,15 @@ def progress(db, store_id, user_id=None):
           AND ((? IS NULL AND m.role='worker') OR m.user_id=?)
         GROUP BY u.id ORDER BY u.display_name, u.id
     """, (store_id, user_id, user_id))
+    rows = list(rows)
+    if user_id and not rows:
+        owner = db.execute("SELECT 1 FROM workspace_metadata WHERE store_id=? AND kind='personal' AND owner_id=?", (store_id,user_id)).fetchone()
+        if owner:
+            rows = db.execute("""SELECT u.id,u.display_name,COUNT(e.completed_at) AS attempts,
+                SUM(e.correct IS NOT NULL AND e.completed_at IS NOT NULL) AS scored,
+                COALESCE(SUM(e.correct),0) AS correct,MAX(e.completed_at) AS latest
+                FROM users u LEFT JOIN store_exercises e ON e.user_id=u.id AND e.store_id=?
+                WHERE u.id=? GROUP BY u.id""", (store_id,user_id)).fetchall()
     result = []
     for row in rows:
         item = dict(row)

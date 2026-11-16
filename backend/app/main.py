@@ -95,10 +95,12 @@ def pos_catalog(scope=Depends(active_scope)):
 from .demo import install_limits
 from .auth import install as install_auth
 from .stores import router as stores_router
+from .workspaces import router as workspaces_router
 from .web import install as install_web
 install_limits(app)
 install_auth(app)
 app.include_router(stores_router)
+app.include_router(workspaces_router)
 from .store_admin import router as store_admin_router
 from . import store_catalog, store_import, store_link
 from . import quiz_groups

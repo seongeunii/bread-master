@@ -1,11 +1,14 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { api } from '../../lib/api'
-import type { Account } from './useAccount'
+import type { Account, Session } from './useAccount'
 import { StorePanel } from './StorePanel'
+import { WorkspacePanel } from './WorkspacePanel'
 import './Account.css'
 
 type Props = {
+  session: Session | null
+  onWorkspaceChanged: () => Promise<void>
   user: Account | null
   enabled: boolean
   loading: boolean
@@ -17,7 +20,7 @@ type Props = {
   onManage: () => void
 }
 
-export function AccountPanel({ user, enabled, loading, connectionError, onRetry, onSignedIn, onSignedOut, onPractice, onManage }: Props) {
+export function AccountPanel({ session, onWorkspaceChanged, user, enabled, loading, connectionError, onRetry, onSignedIn, onSignedOut, onPractice, onManage }: Props) {
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [email, setEmail] = useState('')
   const [name, setName] = useState('')
@@ -65,13 +68,14 @@ export function AccountPanel({ user, enabled, loading, connectionError, onRetry,
         <h2 id="account-title">{user.display_name}님의 계정</h2>
         <p className="account-intro">오늘도 빵 하나씩, 차근차근 익혀 봐요.</p>
         <dl className="account-details"><dt>이름</dt><dd>{user.display_name}</dd><dt>이메일</dt><dd>{user.email}</dd></dl>
-        <StorePanel key={user.id} onManage={onManage}/>
-        <p className="account-note">매장 참여가 승인되면 내 학습 현황을 확인할 수 있어요.</p>
+        <WorkspacePanel session={session} onChanged={onWorkspaceChanged} onManage={onManage} onPractice={onPractice}/>
+        <StorePanel key={user.id} onChanged={onWorkspaceChanged} onManage={onManage}/>
+        <p className="account-note">개인 공간과 근무 매장의 자료·기록을 각각 관리해요.</p>
         {error && <p role="alert" className="account-error">{error}</p>}
-        <div className="account-actions"><button className="primary" onClick={onPractice}>연습하러 가기</button><button className="account-secondary" disabled={busy} onClick={() => void logout()}>{busy ? '로그아웃 중…' : '로그아웃'}</button></div>
+        <div className="account-actions"><button className="account-secondary" disabled={busy} onClick={() => void logout()}>{busy ? '로그아웃 중…' : '로그아웃'}</button></div>
       </> : <>
         <h2 id="account-title">{mode === 'login' ? '다시 만나서 반가워요' : '빵마스터와 함께 시작해요'}</h2>
-        <p className="account-intro">{mode === 'login' ? '이메일로 내 계정에 로그인하세요.' : '계정을 만들면 바로 로그인돼요.'}</p>
+        <p className="account-intro">{mode === 'login' ? '이메일로 내 계정에 로그인하세요.' : '가입 후 내 자료로 연습하거나 근무 매장에 참여하세요.'}</p>
         <div className="account-tabs" aria-label="계정 메뉴"><button aria-pressed={mode === 'login'} disabled={busy} onClick={() => switchMode('login')}>로그인</button><button aria-pressed={mode === 'register'} disabled={busy} onClick={() => switchMode('register')}>회원가입</button></div>
         <form onSubmit={event => void submit(event)}>
           <fieldset disabled={busy}>
@@ -89,7 +93,7 @@ export function AccountPanel({ user, enabled, loading, connectionError, onRetry,
           <div><span>점주</span><code>owner@breadmaster.demo</code><code>BreadMaster!2026</code></div>
           <div><span>근무자</span><code>staff@breadmaster.demo</code><code>BreadMaster!2026</code></div>
         </aside>}
-        <p className="account-note">매장 참여가 승인되면 내 학습 현황을 확인할 수 있어요. 가입 후 근무 매장에 참여할 수 있어요.</p>
+        <p className="account-note">개인 공간과 근무 매장의 자료·기록을 각각 관리해요. 가입 후 근무 매장에 참여할 수 있어요.</p>
       </>}
   </section>
 }

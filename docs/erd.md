@@ -9,6 +9,12 @@ erDiagram
     USERS ||--o{ AUTH_SESSIONS : authenticates
     USERS ||--o| STORE_MEMBERSHIPS : joins
     STORES ||--o{ STORE_MEMBERSHIPS : has
+    STORES ||--|| WORKSPACE_METADATA : identifies
+    USERS ||--o| WORKSPACE_METADATA : owns_personal
+    AUTH_SESSIONS ||--o| WORKSPACE_SELECTIONS : selects
+    STORES ||--o{ WORKSPACE_SELECTIONS : current
+    USERS ||--o| WORKSPACE_PREFERENCES : remembers
+    STORES ||--o{ WORKSPACE_PRODUCT_METADATA : preserves
     STORES ||--o{ STORE_CATEGORIES : configures
     STORES ||--o{ STORE_MENUS : contains
     STORES ||--o{ STORE_PHOTOS : stores
@@ -24,6 +30,8 @@ erDiagram
     PRODUCTS ||--o{ QUESTIONS : target
     QUESTIONS ||--o| ANSWERS : answered
 ```
+
+공간 종류·세션별 선택·기존 메뉴 이전은 [개인 연습 공간과 공식 매장](workspaces.md)을 참고합니다.
 
 ### 현재 주요 테이블
 

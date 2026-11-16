@@ -125,6 +125,8 @@ class SessionStatus(BaseModel):
     enabled: bool
     user: Optional[Account]
     store_role: Optional[str] = None
+    workspace: Optional[dict] = None
+    workspaces: list[dict] = Field(default_factory=list)
 
 
 def find_account(request: Request):
@@ -154,6 +156,8 @@ def start_session(db, request: Request, response: Response, user_id: str):
     db.execute('DELETE FROM auth_sessions WHERE expires_at<=?', (now,))
     token = secrets.token_urlsafe(32)
     db.execute('INSERT INTO auth_sessions VALUES (?,?,?)', (digest(token), user_id, now + SESSION_SECONDS))
+    from .workspaces import restore_selection
+    restore_selection(db, digest(token), user_id)
     secure = os.environ.get('BREAD_AUTH_COOKIE_SECURE') == '1' or request.url.scheme == 'https'
     response.set_cookie(COOKIE_NAME, token, max_age=SESSION_SECONDS,
                         expires=datetime.fromtimestamp(now + SESSION_SECONDS, timezone.utc),
@@ -163,12 +167,14 @@ def start_session(db, request: Request, response: Response, user_id: str):
 @router.get('/session', response_model=SessionStatus)
 def session(request: Request):
     account = find_account(request)
-    role = None
-    if account:
-        with connect() as db:
-            member = db.execute("SELECT role FROM store_memberships WHERE user_id=? AND status='active'", (account['id'],)).fetchone()
-            role = member['role'] if member else None
-    return {'enabled': enabled(), 'user': dict(account) if account else None, 'store_role': role}
+    from .workspaces import current_workspace, available_workspaces
+    with connect() as db:
+        workspace = current_workspace(db, request, account['id']) if account else None
+        spaces = available_workspaces(db, account['id']) if account else []
+    return {'enabled': enabled(), 'user': dict(account) if account else None,
+            'store_role': workspace['role'] if workspace and workspace['kind'] == 'store' else None,
+            'workspace': workspace, 'workspaces': spaces}
+
 
 
 @router.get('/me', response_model=Account)

@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { MyProgress } from './StoreAdmin'
 import { api } from '../../lib/api'
 
 type StoreRequest = { user_id: string; display_name: string; email: string }
@@ -13,9 +12,9 @@ type Store = {
   requests?: StoreRequest[]
 }
 
-export function StorePanel({ onManage }: { onManage: () => void }) {
+export function StorePanel({ onManage, onChanged }: { onManage: () => void; onChanged?: () => Promise<void> }) {
   const [store, setStore] = useState<Store | null | undefined>(undefined)
-  const [mode, setMode] = useState<'join' | 'create'>('join')
+  const [mode, setMode] = useState<'join' | 'create' | null>(null)
   const [value, setValue] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -38,6 +37,7 @@ export function StorePanel({ onManage }: { onManage: () => void }) {
 
   async function refresh() {
     setStore(await api<Store | null>('/stores/mine'))
+    await onChanged?.()
   }
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -48,6 +48,7 @@ export function StorePanel({ onManage }: { onManage: () => void }) {
         : await api<Store>('/stores/join', { code: value.trim() })
       setStore(created)
       setValue('')
+      await onChanged?.()
     })
   }
 
@@ -58,11 +59,11 @@ export function StorePanel({ onManage }: { onManage: () => void }) {
       error ? <button className="account-secondary" disabled={busy} onClick={() => void perform(refresh)}>다시 불러오기</button>
         : <p role="status">매장 정보를 확인하고 있어요…</p>
     ) : store === null ? <>
-      <div className="account-tabs" aria-label="매장 메뉴">
-        <button disabled={busy} aria-pressed={mode === 'join'} onClick={() => { setMode('join'); setValue(''); setError('') }}>매장 참여</button>
-        <button disabled={busy} aria-pressed={mode === 'create'} onClick={() => { setMode('create'); setValue(''); setError('') }}>매장 만들기</button>
+      <div className="workspace-entry-actions" aria-label="매장 메뉴">
+        <button disabled={busy} aria-pressed={mode === 'join'} onClick={() => { setMode('join'); setValue(''); setError('') }}><strong>초대 코드로 매장 참여</strong><small>관리자에게 받은 코드로 신청해요</small></button>
+        <button disabled={busy} aria-pressed={mode === 'create'} onClick={() => { setMode('create'); setValue(''); setError('') }}><strong>매장 만들기</strong><small>우리 매장 메뉴와 근무자를 관리해요</small></button>
       </div>
-      <form onSubmit={submit}>
+      {mode && <form onSubmit={submit}>
         <fieldset disabled={busy}>
           <label>{mode === 'join' ? '초대 코드' : '매장 이름'}
             <input required value={value} onChange={event => setValue(event.target.value)}
@@ -71,7 +72,7 @@ export function StorePanel({ onManage }: { onManage: () => void }) {
           </label>
           <button className="primary account-submit">{mode === 'join' ? '참여 신청' : '매장 만들기'}</button>
         </fieldset>
-      </form>
+      </form>}
     </> : <>
       <p className="store-name">{store.name} · {store.status === 'pending' ? '승인 대기' : store.role === 'admin' ? '관리자' : '근무자'}</p>
       {store.status === 'pending' && <>
@@ -82,7 +83,7 @@ export function StorePanel({ onManage }: { onManage: () => void }) {
         })}>신청 취소</button>
       </>}
       {store.role === 'admin' && <>
-        <button className="primary" onClick={onManage}>매장 관리</button>
+        <button className="primary" onClick={() => void perform(async () => { await api('/workspaces/select', { workspace_id: store.id }); await onChanged?.(); onManage() })}>매장 관리</button>
         <p>초대 코드 <code>{store.invite_code}</code></p>
         <small>참여할 근무자에게 이 코드를 알려 주세요.</small>
         <h4>승인 대기 신청</h4>
@@ -102,7 +103,7 @@ export function StorePanel({ onManage }: { onManage: () => void }) {
         </li>)}</ul> : <p>대기 중인 신청이 없어요.</p>}
       </>}
       <button className="account-secondary" disabled={busy} onClick={() => void perform(refresh)}>상태 새로고침</button>
-      {store.status === 'active' && <MyProgress/>}
+
     </>}
   </section>
 }

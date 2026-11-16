@@ -60,6 +60,19 @@ def initialize():
             key_hash TEXT PRIMARY KEY, attempts INTEGER NOT NULL, expires_at INTEGER NOT NULL);
         CREATE TABLE IF NOT EXISTS stores(
             id TEXT PRIMARY KEY, name TEXT NOT NULL, invite_code TEXT NOT NULL UNIQUE);
+        CREATE TABLE IF NOT EXISTS workspace_metadata(
+            store_id TEXT PRIMARY KEY REFERENCES stores(id),
+            kind TEXT NOT NULL CHECK(kind IN ('personal','store')),
+            owner_id TEXT UNIQUE REFERENCES users(id));
+        CREATE TABLE IF NOT EXISTS workspace_selections(
+            token_hash TEXT PRIMARY KEY REFERENCES auth_sessions(token_hash) ON DELETE CASCADE,
+            workspace_id TEXT REFERENCES stores(id));
+        CREATE TABLE IF NOT EXISTS workspace_preferences(
+            user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+            workspace_id TEXT REFERENCES stores(id));
+        CREATE TABLE IF NOT EXISTS workspace_product_metadata(
+            store_id TEXT NOT NULL REFERENCES stores(id), product_id INTEGER NOT NULL,
+            data TEXT NOT NULL, PRIMARY KEY(store_id,product_id));
         CREATE TABLE IF NOT EXISTS store_memberships(
             user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
             store_id TEXT NOT NULL REFERENCES stores(id),
@@ -119,6 +132,8 @@ def initialize():
         for group, ids in [('croissant', (1, 11, 12)), ('salt', (5, 9, 10)), ('loaf', (3, 4)), ('sandwich', (7, 8))]:
             db.executemany('UPDATE products SET name_group=? WHERE id=? AND is_sample=1', [(group, id) for id in ids])
 
+        from .workspaces import migrate_legacy_workspaces
+        migrate_legacy_workspaces(db)
         from .quiz_groups import initialize_store_groups
         for row in db.execute('SELECT id FROM stores').fetchall():
             initialize_store_groups(db, row['id'])

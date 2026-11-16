@@ -16,6 +16,8 @@ def owner(tmp_path, monkeypatch):
     with TestClient(app) as client:
         client.post('/api/v1/auth/register', json={'email': 'owner@example.com', 'password': 'bread-practice-2026', 'display_name': '관리자'}, headers=H).raise_for_status()
         store = client.post('/api/v1/stores', json={'name': '연습점'}, headers=H).json()
+        from workspace_fixtures import legacy_store
+        legacy_store(store['id'])
         yield client, store
 
 
@@ -130,6 +132,7 @@ def test_photo_requirement_and_store_boundaries(owner):
         # Reuse that account as a worker of the first store to exercise the role gate.
         with db.connect() as conn:
             conn.execute("UPDATE store_memberships SET role='worker',store_id=? WHERE user_id=(SELECT id FROM users WHERE email='other@example.com')", (store['id'],))
+        other.post('/api/v1/workspaces/select', json={'workspace_id': store['id']}, headers=H).raise_for_status()
         assert other.get('/api/v1/store-admin/quiz-groups').status_code == 403
         assert other.post('/api/v1/store-admin/quiz-groups/recommend', json={}, headers=H).status_code == 403
 

@@ -36,6 +36,8 @@ def build_question(db, mode, exclude_ids, scope=None):
         # A two-product store group must still support a full five-question round.
         if scope and not eligible and matching_groups:
             eligible = [p for p in pool if any(p['id'] in ids for ids in matching_groups)]
+    if scope and not eligible and mode not in ('name', 'similar-photo'):
+        eligible = pool
     if not eligible:
         raise HTTPException(409, '출제할 상품이 부족합니다. 유사 상품명 그룹 설정 또는 새로운 라운드가 필요합니다.')
     target = random.choice(eligible)

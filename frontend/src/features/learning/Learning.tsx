@@ -7,8 +7,8 @@ import { ROUND_SIZE, stages } from './stages'
 import { DeliveryAdvanced } from '../delivery/DeliveryAdvanced'
 import './Learning.css'
 
-type Props = { products: Product[]; categories: Category[]; initialMode: Mode | null }
-export function Learning({ initialMode }: Props) {
+type Props = { products: Product[]; categories: Category[]; initialMode: Mode | null; readiness?: { photo_count: number; similar_ready: boolean }; onManage?: () => void }
+export function Learning({ initialMode, readiness, onManage }: Props) {
   const [advancedDelivery, setAdvancedDelivery] = useState(false)
   const [mode, setMode] = useState<Mode | null>(initialMode)
   const [question, setQuestion] = useState<Question | null>(null)
@@ -60,9 +60,15 @@ export function Learning({ initialMode }: Props) {
     if (answers.length === ROUND_SIZE) setFinished(true)
     else void nextQuestion()
   }
+  function unavailable(next: Mode) {
+    if (!readiness) return false
+    if (next === 'name') return !readiness.similar_ready
+    return readiness.photo_count < (next === 'delivery' ? 4 : next === 'pos' ? 3 : 1)
+  }
   return <section className="learning">
+    {readiness && <div className="account-note"><p>사진 있는 상품 {readiness.photo_count}개 · 유사 상품 그룹 {readiness.similar_ready ? '준비됨' : '준비 필요'}</p><p>카테고리는 사진 1개, 상품명 구분은 사진 2개 이상의 출제 그룹, 배달 기본은 사진 4개, POS는 사진 3개가 필요해요.</p>{onManage && <button className="account-secondary" onClick={onManage}>사진·메뉴 관리하기</button>}</div>}
     <div className="section-heading"><div><h2>네 단계, 나에게 필요한 연습부터</h2><p>순서대로 잠금 해제할 필요 없이 원하는 단계를 선택하세요.</p></div><span className="round-rule">{advancedDelivery ? '심화 · 주문당 20점 · 자유 연습' : '5문제 · 정답당 20점 · 100점 만점'}</span></div>
-    <div className="stage-grid" aria-label="학습 단계 선택">{stages.map(s => <button key={s.mode} className={`stage-card ${(mode === s.mode || (s.mode === 'name' && mode === 'similar-photo')) ? 'chosen' : ''}`} aria-pressed={mode === s.mode || (s.mode === 'name' && mode === 'similar-photo')} onClick={() => reset(s.mode)}><span className="stage-icon" aria-hidden="true">{s.icon}</span><small>{s.number}단계</small><h3>{s.title}</h3><p>{s.description}</p><span className="stage-action">{(mode === s.mode || (s.mode === 'name' && mode === 'similar-photo')) ? '선택됨 ✓' : '이 단계 선택 →'}</span></button>)}</div>
+    <div className="stage-grid" aria-label="학습 단계 선택">{stages.map(s => <button disabled={unavailable(s.mode)} key={s.mode} className={`stage-card ${(mode === s.mode || (s.mode === 'name' && mode === 'similar-photo')) ? 'chosen' : ''}`} aria-pressed={mode === s.mode || (s.mode === 'name' && mode === 'similar-photo')} onClick={() => reset(s.mode)}><span className="stage-icon" aria-hidden="true">{s.icon}</span><small>{s.number}단계</small><h3>{s.title}</h3><p>{s.description}</p><span className="stage-action">{(mode === s.mode || (s.mode === 'name' && mode === 'similar-photo')) ? '선택됨 ✓' : '이 단계 선택 →'}</span></button>)}</div>
     {stage?.mode === 'name' && <div className="name-directions" aria-label="상품명 연습 방향"><button className={mode === 'name' ? 'selected' : ''} aria-pressed={mode === 'name'} onClick={() => reset('name')}>사진 보고 이름 선택</button><button className={mode === 'similar-photo' ? 'selected' : ''} aria-pressed={mode === 'similar-photo'} onClick={() => reset('similar-photo')}>이름 보고 사진 선택</button></div>}
     {stage?.mode === 'delivery' && <div className="name-directions" aria-label="배달 연습 난이도"><button aria-pressed={!advancedDelivery} className={!advancedDelivery ? 'selected' : ''} onClick={() => reset('delivery')}>기본 · 사진 1개 선택</button><button aria-pressed={advancedDelivery} className={advancedDelivery ? 'selected' : ''} onClick={() => { reset('delivery'); setAdvancedDelivery(true) }}>심화 · 주문서대로 포장</button></div>}
     {mode === 'pos' ? <PosPractice/> : advancedDelivery && stage?.mode === 'delivery' ? <DeliveryAdvanced/> : !stage ? <div className="stage-empty">어떤 연습부터 해볼까요? 위에서 단계를 선택해 주세요.</div> : <div className="round-content">

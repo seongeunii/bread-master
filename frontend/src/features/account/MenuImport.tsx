@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { PhotoRecognition } from './PhotoRecognition'
 import type { MenuCandidate } from './menuCandidates'
 import type { Category } from '../../lib/api'
-import { api } from '../../lib/api'
+import { api, workspaceHeaders } from '../../lib/api'
 
 type Row = MenuCandidate & { photoError?: string }
 
@@ -48,7 +48,7 @@ export function MenuImport({ categories, onSaved }: { categories: Category[]; on
     try {
       const response = await fetch('/api/v1/store-admin/import/preview', {
         method: 'POST', credentials: 'same-origin',
-        headers: { 'X-Bread-Client': 'web' }, body: file,
+        headers: { ...workspaceHeaders(), 'X-Bread-Client': 'web' }, body: file,
       })
       const data = await response.json()
       if (!response.ok) throw new Error(typeof data.detail === 'string' ? data.detail : '파일을 확인해 주세요.')
