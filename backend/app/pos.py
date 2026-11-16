@@ -45,17 +45,20 @@ def catalog(db, store_id=None):
     saved = db.execute('SELECT items FROM store_categories WHERE store_id=?', (store_id,)).fetchone()
     if saved:
         layout = {**layout, 'categories': json.loads(saved['items'])}
-    products = {p['id']: p for p in layout['products']}
+    explicit = db.execute('SELECT 1 FROM workspace_metadata WHERE store_id=?', (store_id,)).fetchone()
+    products = {} if explicit else {p['id']: p for p in layout['products']}
+    metadata = {row['product_id']: json.loads(row['data']) for row in db.execute('SELECT * FROM workspace_product_metadata WHERE store_id=?', (store_id,))}
     categories = {c['id']: c['name'] for c in layout['categories']}
-    for row in db.execute('SELECT * FROM store_menus WHERE store_id=?', (store_id,)):
+    for row in db.execute('SELECT * FROM store_menus WHERE store_id=? ORDER BY product_id', (store_id,)):
         menu = dict(row)
         menu.pop('store_id')
         product_id = menu.pop('product_id')
+        original = metadata.get(product_id, products.get(product_id, {}))
         products[product_id] = {
-            **products.get(product_id, {}), **menu, 'id': product_id,
+            **original, **menu, 'id': product_id,
             'category_name': categories.get(menu['category_id'], '매장 POS'),
-            'is_sample': False, 'price_known': True, 'manual_price': False,
-            'description': '매장에서 등록한 POS 메뉴입니다.',
+            'is_sample': original.get('is_sample', False), 'price_known': original.get('price_known', True), 'manual_price': original.get('manual_price', False),
+            'description': original.get('description', '매장에서 등록한 POS 메뉴입니다.'),
             'image_status': 'reference' if menu['illustration'] else 'missing',
         }
     for product in products.values():

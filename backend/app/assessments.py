@@ -151,6 +151,8 @@ def submit(assessment_id: str, scope=Depends(require_worker)):
 @router.get('/store-results')
 def store_results(worker_id: str = Query(max_length=64), scope=Depends(require_admin),
                   offset: int = Query(0, ge=0)):
+    if scope[2] != 'admin':
+        raise HTTPException(403, '공식 매장 관리자만 조회할 수 있어요.')
     with connect() as db:
         worker = db.execute("""SELECT 1 FROM store_memberships
             WHERE store_id=? AND user_id=? AND role='worker' AND status='active'""",

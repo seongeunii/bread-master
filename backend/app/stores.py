@@ -2,7 +2,7 @@
 import secrets
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field
 
 from .auth import protect_write, require_account
@@ -55,15 +55,16 @@ def ensure_unaffiliated(db, user_id):
 
 
 @router.post('', status_code=201, dependencies=[Depends(protect_write)])
-def create(body: StoreInput, account=Depends(require_account)):
+def create(body: StoreInput, request: Request, account=Depends(require_account)):
     user_id = account['id']
     with connect() as db:
         ensure_unaffiliated(db, user_id)
         store_id = uuid.uuid4().hex
         db.execute('INSERT INTO stores VALUES (?, ?, ?)', (store_id, body.name, secrets.token_hex(6)))
         db.execute("INSERT INTO store_memberships VALUES (?, ?, 'admin', 'active')", (user_id, store_id))
-        from .quiz_groups import initialize_store_groups
-        initialize_store_groups(db, store_id)
+        from .workspaces import initialize_empty_workspace, select_workspace
+        initialize_empty_workspace(db, store_id, 'store')
+        select_workspace(db, request, user_id, store_id)
     return mine(account)
 
 
@@ -72,7 +73,7 @@ def join(body: JoinInput, account=Depends(require_account)):
     user_id = account['id']
     with connect() as db:
         ensure_unaffiliated(db, user_id)
-        store = db.execute('SELECT id FROM stores WHERE invite_code=?', (body.code.lower(),)).fetchone()
+        store = db.execute("SELECT s.id FROM stores s JOIN workspace_metadata w ON w.store_id=s.id WHERE s.invite_code=? AND w.kind='store'", (body.code.lower(),)).fetchone()
         if store is None:
             raise HTTPException(404, '초대 코드를 확인해 주세요.')
         db.execute("INSERT INTO store_memberships VALUES (?, ?, 'worker', 'pending')", (user_id, store['id']))
@@ -101,3 +102,5 @@ def decide(user_id: str, decision: str, account=Depends(require_account)):
         changed = db.execute(command + " WHERE user_id=? AND store_id=? AND status='pending'", (user_id, row['id']))
         if changed.rowcount != 1:
             raise HTTPException(404, '이 매장의 승인 대기 신청을 찾을 수 없어요.')
+        if decision == 'approve':
+            db.execute('UPDATE workspace_selections SET workspace_id=? WHERE workspace_id IS NULL AND token_hash IN (SELECT token_hash FROM auth_sessions WHERE user_id=?)', (row['id'], user_id))

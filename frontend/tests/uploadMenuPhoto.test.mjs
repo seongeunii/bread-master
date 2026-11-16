@@ -20,3 +20,18 @@ test('a failed photo upload exposes the error and a retry returns the private ph
   assert.equal(options.headers['X-Bread-Client'], 'web')
   assert.equal(options.body, file)
 })
+
+test('photo uploads carry the selected workspace to prevent stale-space writes', async t => {
+  const { setWorkspaceContext } = await import('../src/lib/api.ts')
+  const fetch = t.mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify({ url: '/api/v1/store-admin/photos/private' })))
+  try {
+    setWorkspaceContext('personal-space')
+    await uploadMenuPhoto(new File(['photo'], 'bread.jpg', { type: 'image/jpeg' }))
+    assert.equal(fetch.mock.calls[0].arguments[1].headers['X-Bread-Workspace'], 'personal-space')
+    setWorkspaceContext('official-store')
+    await uploadMenuPhoto(new File(['photo'], 'bread.jpg', { type: 'image/jpeg' }))
+    assert.equal(fetch.mock.calls[1].arguments[1].headers['X-Bread-Workspace'], 'official-store')
+  } finally {
+    setWorkspaceContext(undefined)
+  }
+})

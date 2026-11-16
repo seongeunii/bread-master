@@ -4,11 +4,15 @@ export type Mode = 'category' | 'name' | 'similar-photo' | 'delivery' | 'pos'
 export type Question = { id: string; mode: Mode; illustration: string | null; prompt_name: string | null; options: { id: number; name?: string; illustration?: string; category_name?: string }[] }
 export type Result = { points: number; feedback: string; is_correct: boolean; elapsed_ms: number; correct_product: Product; selected_id: number }
 
+let workspaceContext: string | undefined
+export function workspaceHeaders(): Record<string, string> { return workspaceContext ? { 'X-Bread-Workspace': workspaceContext } : {} }
+export function setWorkspaceContext(id: string | undefined) { workspaceContext = id }
+
 export async function api<T>(path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
   const response = await fetch(`/api/v1${path}`, {
     method: body === undefined ? 'GET' : 'POST',
     credentials: 'same-origin',
-    headers: body === undefined ? undefined : { 'Content-Type': 'application/json', 'X-Bread-Client': 'web' },
+    headers: { ...workspaceHeaders(), ...(body === undefined ? {} : { 'Content-Type': 'application/json', 'X-Bread-Client': 'web' }) },
     body: body === undefined ? undefined : JSON.stringify(body), signal,
   })
   if (!response.ok) {

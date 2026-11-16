@@ -26,7 +26,7 @@ def register(client, **changes):
 
 
 def test_register_session_me_and_logout(client):
-    assert client.get('/api/v1/auth/session').json() == {'enabled': True, 'user': None, 'store_role': None}
+    assert client.get('/api/v1/auth/session').json() == {'enabled': True, 'user': None, 'store_role': None, 'workspace': None, 'workspaces': []}
     assert client.get('/api/v1/auth/me').status_code == 401
     response = register(client)
     assert response.status_code == 201
@@ -136,7 +136,8 @@ def test_expired_tampered_and_missing_sessions(client):
 def test_accounts_and_sessions_survive_restart_without_touching_learning_data(client):
     account = register(client).json()
     token = client.cookies[auth.COOKIE_NAME]
-    question = client.post('/api/v1/questions', json={'mode': 'name'}).json()
+    guest = TestClient(app)
+    question = guest.post('/api/v1/questions', json={'mode': 'name'}).json()
     db.initialize()
     with TestClient(app) as restarted:
         restarted.cookies.set(auth.COOKIE_NAME, token)
@@ -173,7 +174,7 @@ def test_login_attempt_limit_survives_initialize_and_expires(client):
 
 def test_demo_cannot_collect_credentials(client, monkeypatch):
     monkeypatch.setenv('BREAD_DEMO', '1')
-    assert client.get('/api/v1/auth/session').json() == {'enabled': False, 'user': None, 'store_role': None}
+    assert client.get('/api/v1/auth/session').json() == {'enabled': False, 'user': None, 'store_role': None, 'workspace': None, 'workspaces': []}
     assert register(client).status_code == 503
     assert client.post('/api/v1/auth/login', json={'email': USER['email'], 'password': USER['password']}, headers=HEADERS).status_code == 503
     assert client.get('/api/v1/auth/me').status_code == 503
@@ -262,6 +263,8 @@ def test_store_menus_and_progress_respect_membership_and_keep_original_grade(cli
     register(client, email='menu-owner@example.com')
     owner_token = client.cookies[auth.COOKIE_NAME]
     invite = post('/stores', {'name': '메뉴 매장'}).json()['invite_code']
+    assert post('/store-admin/categories', {'items': [{'id': 1, 'name': '기본'}, {'name': '추가 분류'}]}).status_code == 200
+    second_category = get('/categories').json()[1]['id']
     menu = {'name': '테스트 메뉴', 'category_id': 1, 'pos_slot': 19, 'price': 2200,
             'photo': 'https://example.com/bread.jpg'}
     response = post('/store-admin/menu', menu)
@@ -273,8 +276,8 @@ def test_store_menus_and_progress_respect_membership_and_keep_original_grade(cli
     worker = register(client, email='menu-worker@example.com').json()
     worker_token = client.cookies[auth.COOKIE_NAME]
     assert post('/stores/join', {'code': invite}).status_code == 201
-    assert not any(p['id'] == item['id'] for p in get('/products').json())
-    assert get('/store-admin/my-progress').status_code == 403
+    assert get('/products').status_code == 409
+    assert get('/store-admin/my-progress').status_code == 409
     switch(owner_token)
     assert post(f"/stores/requests/{worker['id']}/approve", {}).status_code == 204
 
@@ -288,7 +291,7 @@ def test_store_menus_and_progress_respect_membership_and_keep_original_grade(cli
 
     switch(owner_token)
     assert post(answer, {'selected_id': 1, 'elapsed_ms': 200}).status_code == 404
-    assert post('/store-admin/menu', {**menu, 'product_id': item['id'], 'name': '바뀐 메뉴', 'category_id': 2}).status_code == 200
+    assert post('/store-admin/menu', {**menu, 'product_id': item['id'], 'name': '바뀐 메뉴', 'category_id': second_category}).status_code == 200
     assert get('/store-admin/progress').json()[0]['attempts'] == 0
 
     switch(worker_token)
@@ -314,7 +317,9 @@ def test_store_categories_and_uploaded_photos_are_scoped(client):
 
     register(client, email='photo-owner@example.com')
     owner_token = client.cookies[auth.COOKIE_NAME]
-    client.post('/api/v1/stores', json={'name': '사진 매장'}, headers=HEADERS)
+    store = client.post('/api/v1/stores', json={'name': '사진 매장'}, headers=HEADERS).json()
+    from workspace_fixtures import legacy_store
+    legacy_store(store['id'])
     layout = client.get('/api/v1/store-admin/menu').json()
     categories = layout['categories']
     changed = [{**category, 'name': '새 분류명' if index == 0 else category['name']} for index, category in enumerate(categories)]

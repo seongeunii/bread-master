@@ -18,7 +18,7 @@ def require_member(scope=Depends(active_scope)):
 
 
 def require_admin(scope=Depends(require_member)):
-    if scope[2] != 'admin':
+    if scope[2] not in ('admin', 'owner'):
         raise HTTPException(403, '매장 관리자만 이용할 수 있어요.')
     return scope
 
@@ -79,6 +79,8 @@ def save_menu_in_db(db, body, scope):
 
 @router.get('/progress')
 def workers(scope=Depends(require_admin)):
+    if scope[2] == 'owner':
+        raise HTTPException(403, '공식 매장 관리자만 조회할 수 있어요.')
     with connect() as db:
         return progress(db, scope[1])
 
