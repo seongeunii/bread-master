@@ -111,20 +111,21 @@ export function PhotoRecognition({ categories, onCandidates }: {
   }
 
   return <section className="ocr-panel" aria-label="POS 사진 인식">
-    <p>상품 칸 영역에 맞춰 인식 범위를 조정하세요. 칸은 왼쪽 위부터 행 순서대로 읽어요. 첫 실행에는 인식 모델 다운로드가 필요해요.</p>
+    <h3>POS 화면에서 메뉴 가져오기</h3><p>사진을 선택하고 상품 칸 수를 맞추면 이름과 가격을 읽어와요.</p>
     <fieldset disabled={busy}>
-      <label>POS 화면 사진<input type="file" accept="image/jpeg,image/png,image/webp" onChange={event => { void select(event.target.files?.[0]); event.target.value = '' }}/></label>
+      <label className="import-upload">POS 화면 사진 선택<small>JPG·PNG·WebP · 최대 5MB</small><input type="file" accept="image/jpeg,image/png,image/webp" onChange={event => { void select(event.target.files?.[0]); event.target.value = '' }}/></label>
       {preview && <div className="ocr-image"><img src={preview} alt="인식할 POS 원본"/><span style={{ left: crop.left + '%', top: crop.top + '%', width: crop.width + '%', height: crop.height + '%' }}>
         {Array.from({ length: rows * columns }, (_, index) => <i key={index} style={{ left: ((index % columns) * 100 / columns) + '%', top: (Math.floor(index / columns) * 100 / rows) + '%', width: (100 / columns) + '%', height: (100 / rows) + '%' }}>{start + index}</i>)}
       </span></div>}
-      <div className="import-row">
+      <div hidden={!preview}><details className="import-help"><summary>인식 영역 세부 조정</summary><p>사진 속 상품 칸 영역을 백분율로 지정하세요.</p><div className="import-ocr-crop">
         {(Object.keys(labels) as (keyof Crop)[]).map(key => <label key={key}>{labels[key]}<input type="number" min={0} max={100} value={crop[key]} onChange={event => setCrop({ ...crop, [key]: Number(event.target.value) })}/></label>)}
+        </div></details><div className="import-ocr-settings">
         <label>가로 칸 수<input type="number" min={1} max={5} value={columns} onChange={event => setColumns(Math.max(1, Math.min(5, Math.round(Number(event.target.value)))))}/></label>
         <label>세로 칸 수<input type="number" min={1} max={5} value={rows} onChange={event => setRows(Math.max(1, Math.min(5, Math.round(Number(event.target.value)))))}/></label>
         <label>저장할 카테고리<select value={category} onChange={event => setCategory(Number(event.target.value))}>{categories.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
         <label>시작 칸번호<input type="number" min={1} max={500} value={start} onChange={event => setStart(Number(event.target.value))}/></label>
-      </div>
-      <button className="primary" type="button" disabled={!image} onClick={() => void recognize()}>사진에서 메뉴 읽기</button>
+      </div><p className="import-hint">왼쪽 위부터 가로 순서로 읽어요. 처음 실행하면 인식 모델을 내려받아요.</p>
+      <button className="primary" type="button" disabled={!image} onClick={() => void recognize()}>사진에서 메뉴 읽기</button></div>
     </fieldset>
     {busy && <button type="button" className="account-secondary" onClick={cancel}>인식 취소</button>}
     {status && <p role="status">{status}</p>}

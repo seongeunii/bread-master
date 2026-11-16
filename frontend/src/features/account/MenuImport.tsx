@@ -1,3 +1,4 @@
+import './MenuImport.css'
 import { uploadMenuPhoto } from './uploadMenuPhoto'
 import { useState } from 'react'
 import { PhotoRecognition } from './PhotoRecognition'
@@ -99,35 +100,48 @@ export function MenuImport({ categories, onSaved }: { categories: Category[]; on
     } finally { setBusy(false) }
   }
 
-  return <details className="category-manager">
-    <summary>파일·POS 사진·상품 링크에서 등록</summary>
-    <div className="account-tabs" aria-label="가져오기 방법">
-      <button type="button" disabled={busy} aria-pressed={source === 'file'} onClick={() => setSource('file')}>엑셀·CSV</button>
-      <button type="button" disabled={busy} aria-pressed={source === 'photo'} onClick={() => setSource('photo')}>POS 사진 인식</button>
-      <button type="button" disabled={busy} aria-pressed={source === 'link'} onClick={() => setSource('link')}>상품 링크</button>
+  return <details className="menu-import">
+    <summary><span><strong>메뉴 가져오기</strong><small>파일·POS 사진·상품 링크로 한 번에 등록하세요</small></span><span className="import-expand" aria-hidden="true">＋</span></summary>
+    <div className="import-workspace">
+    <ol className="import-steps" aria-label="메뉴 등록 순서">
+      <li className={rows.length ? '' : 'current'}><span>1</span>자료 가져오기</li>
+      <li className={rows.length ? 'current' : ''}><span>2</span>내용 확인·등록</li>
+    </ol>
+    <div className="import-methods" aria-label="가져오기 방법">
+      {([
+        ['file', '표', '엑셀·CSV', '정리된 메뉴 목록을 한 번에'],
+        ['photo', '사진', 'POS 사진', '화면 속 상품명과 가격 읽기'],
+        ['link', '↗', '상품 링크', '공식 상품명과 사진 가져오기'],
+      ] as const).map(([value, icon, title, description]) => <button key={value} type="button" disabled={busy} aria-pressed={source === value} onClick={() => setSource(value)}>
+        <span className="import-method-icon" aria-hidden="true">{icon}</span><strong>{title}</strong><small>{description}</small>
+      </button>)}
     </div>
+    <div className="import-source-panel" aria-busy={busy}>
     {source === 'photo' && <PhotoRecognition categories={categories} onCandidates={candidates}/>}
-    {source === 'link' && <form onSubmit={event => { event.preventDefault(); void previewLink() }}>
-      <p>파리바게뜨 공식 상품 상세 페이지에서 상품명·사진을 가져옵니다. 가격과 POS 위치는 확인 후 입력하세요.</p>
+    {source === 'link' && <form className="import-link-form" onSubmit={event => { event.preventDefault(); void previewLink() }}>
+      <h3>상품 링크 붙여넣기</h3><p>파리바게뜨 공식 상품 상세 주소를 입력하세요. 판매가와 POS 위치는 가져온 뒤 정할 수 있어요.</p>
       <label>공식 상품 링크<input required type="url" maxLength={2048} value={url} disabled={busy} onChange={event => setUrl(event.target.value)} placeholder="https://www.paris.co.kr/product/…"/></label>
-      <button type="submit" className="primary" disabled={busy}>링크에서 가져오기</button>
+      <button type="submit" className="primary" disabled={busy}>{busy ? '가져오는 중…' : '상품 가져오기'}</button>
     </form>}
     {source === 'file' && <>
-    <p>첫 행을 상품명,가격,카테고리,칸번호,사진주소 순서로 작성하세요. 칸번호는 1부터 시작해요. UTF-8 CSV 또는 XLSX 첫 시트, 최대 100행·2MB를 지원해요.</p>
+    <h3>메뉴 목록 업로드</h3><p>작성한 파일을 선택하면 등록할 내용을 먼저 확인할 수 있어요.</p>
     <p><a download="메뉴등록양식.csv" href={'data:text/csv;charset=utf-8,' + encodeURIComponent('\uFEFF상품명,가격,카테고리,칸번호,사진주소\n')}>CSV 양식 내려받기</a></p>
     <fieldset disabled={busy}>
-      <label>메뉴 파일 선택<input type="file" accept=".csv,.xlsx" onChange={event => { void preview(event.target.files?.[0]); event.target.value = '' }}/></label>
-    </fieldset></>}
+      <label className="import-upload">메뉴 파일 선택<small>엑셀 또는 CSV · 최대 100개 메뉴 · 2MB</small><input type="file" accept=".csv,.xlsx" onChange={event => { void preview(event.target.files?.[0]); event.target.value = '' }}/></label>
+    </fieldset><details className="import-help"><summary>파일 작성 방법</summary><p>첫 행은 상품명, 가격, 카테고리, 칸번호, 사진주소 순서로 작성하세요. 칸번호는 1부터 시작하며, UTF-8 CSV 또는 XLSX 첫 시트를 읽어요.</p></details></>}
+    </div>
     <fieldset disabled={busy}>
       {error && <p role="alert" className="account-error">{error}</p>}
       {message && <p role="status">{message}</p>}
-      {rows.length > 0 && <form onSubmit={event => { event.preventDefault(); void save() }}>
-        <h3>등록 전 확인</h3>
+      {busy && <p className="import-progress" role="status">자료를 처리하고 있어요. 잠시 기다려 주세요.</p>}
+      {rows.length > 0 && <form className="import-review" onSubmit={event => { event.preventDefault(); void save() }}>
+        <div className="import-review-heading"><div><small>등록 전 확인</small><h3>가져온 메뉴 {rows.length}개</h3></div><span>이름·가격·위치를 확인하세요</span></div>
         {sourceUrl && <p><a href={sourceUrl} target="_blank" rel="noreferrer">공식 출처 확인 ↗</a></p>}
         {source === 'photo' && <p>인식한 이름·가격·칸을 원본과 대조하세요. 각 후보에 상품 사진을 첨부한 뒤 함께 등록할 수 있어요.</p>}
-        <p>새 메뉴를 추가합니다. 기존 상품과 겹치는 칸이 있으면 등록을 중단해요.</p>
-        {rows.map((row, index) => <fieldset key={index} className="import-row">
-          <legend>{index + 1}행</legend>
+        <p className="import-review-note">선택한 메뉴를 새로 등록해요. 사용 중인 칸은 다른 번호로 바꿔 주세요.</p>
+        <div className="import-candidates">
+        {rows.map((row, index) => <fieldset key={index} className="import-candidate">
+          <legend>메뉴 {index + 1}</legend>
           {row.note && <p className="candidate-note">{row.note}</p>}
           {row.photo && <img className="store-photo-preview" src={row.photo} alt="가져온 상품 사진" referrerPolicy="no-referrer"/>}
           <label>상품명<input required maxLength={80} value={row.name} onChange={event => change(index, { name: event.target.value })}/></label>
@@ -136,15 +150,16 @@ export function MenuImport({ categories, onSaved }: { categories: Category[]; on
             <option value="">선택하세요</option>{categories.map(category => <option key={category.id} value={category.id}>{category.name}</option>)}
           </select></label>
           <label>칸번호<input required type="number" min={1} max={500} value={row.slot} onChange={event => change(index, { slot: event.target.value })}/></label>
-          <label>사진주소 또는 업로드 경로<input type="text" maxLength={2048} value={row.photo} onChange={event => change(index, { photo: event.target.value, photoError: undefined })}/></label>
-          <label>상품 사진 첨부<input type="file" accept="image/jpeg,image/png,image/webp" onChange={event => { void attachPhoto(index, event.target.files?.[0]); event.target.value = '' }}/><small>JPG·PNG·WebP, 최대 5MB. 다시 선택하면 교체돼요.</small></label>
+          <details className="import-photo-address"><summary>사진 주소로 입력</summary><label>사진 주소<input type="text" maxLength={2048} value={row.photo} onChange={event => change(index, { photo: event.target.value, photoError: undefined })}/></label></details>
+          <label className="import-photo-upload">상품 사진 첨부<input type="file" accept="image/jpeg,image/png,image/webp" onChange={event => { void attachPhoto(index, event.target.files?.[0]); event.target.value = '' }}/><small>JPG·PNG·WebP, 최대 5MB. 다시 선택하면 교체돼요.</small></label>
           {row.photoError && <p role="alert" className="account-error">{row.photoError} 다시 선택하거나 사진 없이 등록하세요.</p>}
           {(row.photo || row.photoError) && <button type="button" className="account-secondary" onClick={() => change(index, { photo: '', photoError: undefined })}>사진 없이 등록</button>}
-          <button type="button" className="account-secondary" onClick={() => { setRows(rows.filter((_, i) => i !== index)); setRequestId(crypto.randomUUID()) }}>이 후보 제외</button>
+          <button type="button" className="account-secondary import-remove" onClick={() => { setRows(rows.filter((_, i) => i !== index)); setRequestId(crypto.randomUUID()) }}>목록에서 제외</button>
         </fieldset>)}
-        <button className="primary" type="submit" disabled={rows.some(row => !!row.photoError)}>확인한 메뉴 등록</button>
-        <button className="account-secondary" type="button" onClick={() => setRows([])}>미리보기 닫기</button>
+        </div><div className="import-footer"><span>{rows.length}개 메뉴 등록 예정</span><div><button className="primary" type="submit" disabled={rows.some(row => !!row.photoError)}>{rows.length}개 메뉴 등록</button>
+        <button className="account-secondary" type="button" onClick={() => setRows([])}>미리보기 닫기</button></div></div>
       </form>}
     </fieldset>
+    </div>
   </details>
 }
