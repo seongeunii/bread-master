@@ -262,7 +262,7 @@ export function StoreAdmin({ tab = 'menu' }: { tab?: 'menu' | 'progress' }) {
       {error && <p role="alert" className="account-error">{error}</p>}
       {notice && <p role="status">{notice}</p>}
       {layout && <MenuImport categories={layout.categories} onSaved={async () => { setLayout(await api<Layout>('/store-admin/menu')) }}/>}
-      {layout && <CategoryManager key={JSON.stringify(layout.categories)} categories={layout.categories} occupied={new Set(layout.products.map(product => product.category_id))} busy={busy} onSave={items => void saveCategories(items)}/>}
+      {layout && <CategoryManager key={JSON.stringify(layout.categories)} categories={layout.categories} productCounts={new Map(layout.categories.map(item => [item.id, layout.products.filter(product => product.category_id === item.id).length]))} busy={busy} onSave={items => void saveCategories(items)}/>}
       {layout ? <PosTerminal categories={layout.categories} products={layout.products} category={category}
         page={page} onCategory={id => { setCategory(id); setPage(0) }} onPage={setPage}
         onProduct={product => edit(product)} onBlank={slot => edit(undefined, slot)} disabled={busy}
